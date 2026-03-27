@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { readonly, ref, computed } from "vue";
-import type { IChatHistory } from "./chatStoreIndex.type";
+import type { IChatHistory, IStoryGameAssistant, ISystemChatContent, ITxtAssistant, ITxtGameAssistant, IUserChatContent } from "./chatStoreIndex.type";
 import { openDB, addChatData, deleteChatData } from "@/utils/chatIndexedDb";
 export const useChatStore = defineStore("chat", () => {
   // 1. 内部状态
@@ -47,7 +47,7 @@ export const useChatStore = defineStore("chat", () => {
       (item) => item.id === _currentChatId.value,
     );
     if (chat) {
-      chat.chatContent.push(chatData);
+      (chat.chatContent as (IUserChatContent | ISystemChatContent | ITxtAssistant | ITxtGameAssistant | IStoryGameAssistant)[]).push(chatData);
     }
   };
 

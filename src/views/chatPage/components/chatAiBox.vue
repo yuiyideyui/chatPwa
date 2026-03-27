@@ -198,12 +198,12 @@ const adjustHeight = (e: any) => {
   if (inputContent.value.length === 0) resetInput();
 };
 
-const scrollToBottom = async () => {
+const scrollToBottom = async (isFirst = false) => {
   await nextTick();
   if (scrollRef.value) {
     scrollRef.value.scrollTo({
       top: scrollRef.value.scrollHeight,
-      behavior: "smooth",
+      behavior: isFirst ? "auto" : "smooth",
     });
   }
 };
@@ -225,7 +225,7 @@ const sendMessage = async () => {
   isThinking.value = true;
 
   // 2. 准备 AI 消息占位
-  const aiMsg = { role: 'assistant', content: '', chatTime: '', typing: true } as IChatHistory['chatContent'][number] & {typing?:boolean};
+  const aiMsg:IChatHistory["chatContent"][number] = { role: 'assistant', content: {text:''}, chatTime: '', typing: true };
   // 注意：这里为了 UI 渲染，我们可能依然需要 messages.value = chat.chatContent
   // 假设你的页面是直接绑定 chat.chatContent 的
   chatStore.updateCurrentChatContent(aiMsg);
@@ -270,7 +270,7 @@ const sendMessage = async () => {
         try {
           const json = JSON.parse(line);
           if (json.message?.content) {
-            aiMsg.content += json.message.content;
+            aiMsg.content = json.message.content;
             scrollToBottom();
           }
           if (json.done) {
@@ -285,7 +285,7 @@ const sendMessage = async () => {
       }
     }
   } catch (error) {
-    aiMsg.content = "连接失败，请检查 Ollama 服务。";
+    aiMsg.content.text = "连接失败，请检查 Ollama 服务。";
     aiMsg.typing = false;
   } finally {
     isThinking.value = false;
@@ -301,6 +301,12 @@ watch(
   },
   { immediate: true },
 );
+
+watch(()=>chatStore.currentChat?.id,()=>{
+  scrollToBottom(true)
+},{
+  immediate:true
+})
 </script>
 
 <style scoped>
