@@ -41,13 +41,16 @@
                   : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400',
               ]"
             >
-              <span
-                class="i-solar-chat-round-line-line-duotone text-lg shrink-0"
-              ></span>
+              <div class="w-10 h-10 rounded-full overflow-hidden">
+                <img
+                  :src="chat.imgUrl"
+                  alt=""
+                  class="w-full h-full object-cover"
+                />
+              </div>
               <span class="text-sm truncate pr-6 font-medium">{{
                 chat.title
               }}</span>
-
               <div
                 class="absolute right-2 flex gap-1 group-hover:opacity-100 transition-opacity"
               >

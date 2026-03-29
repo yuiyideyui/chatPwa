@@ -1,10 +1,11 @@
 import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig } from "vite";
-import vueDevTools from 'vite-plugin-vue-devtools'
+import vueDevTools from "vite-plugin-vue-devtools";
 import vue from "@vitejs/plugin-vue";
-import UnoCSS from 'unocss/vite'
-import vueJsx from '@vitejs/plugin-vue-jsx'
+import UnoCSS from "unocss/vite";
+import vueJsx from "@vitejs/plugin-vue-jsx";
 import { fileURLToPath } from "node:url";
+import basicSsl from "@vitejs/plugin-basic-ssl";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
@@ -12,12 +13,13 @@ export default defineConfig({
     UnoCSS(),
     vueJsx(),
     vueDevTools(),
+    basicSsl(),
     VitePWA({
       strategies: "injectManifest",
       srcDir: "src",
       filename: "sw.ts",
       registerType: "autoUpdate",
-      injectRegister: 'auto',
+      injectRegister: "auto",
 
       pwaAssets: {
         disabled: false,
@@ -32,9 +34,10 @@ export default defineConfig({
       },
 
       injectManifest: {
-        globPatterns: ["**/*.{js,css,html,svg,png,ico,json,bin}"],
-        // 如果模型文件很大（超过 2MB），建议增加这个限制以免构建报错
-        maximumFileSizeToCacheInBytes: 100 * 1024 * 1024,
+        globPatterns: [
+          "**/*.{js,css,html,svg,png,ico,json,bin,wasm,mjs,onnx,onnx_data}",
+        ],
+        maximumFileSizeToCacheInBytes: 500 * 1024 * 1024,
       },
 
       devOptions: {
@@ -47,13 +50,15 @@ export default defineConfig({
   ],
   server: {
     headers: {
+      // 开启跨源隔离，允许 SharedArrayBuffer
       "Cross-Origin-Opener-Policy": "same-origin",
-      "Cross-Origin-Embedder-Policy": "credentialless",
+      "Cross-Origin-Embedder-Policy": "require-corp",
     },
+    https: true,
   },
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
 });

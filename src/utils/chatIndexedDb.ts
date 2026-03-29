@@ -1,12 +1,18 @@
 import type { IChatHistory } from "@/store/chatStore/chatStoreIndex.type";
 
-const DB_NAME = 'chatDb';
-const STORE_NAME = 'chatHistory';
-
+// const DB_NAME = 'chatDb';
+const STORE_NAME = "chatHistory";
+export enum DB_NAME_ENUM {
+  "chatDb" = "chatDb",
+  "chatDbEn" = "chatDbEn",
+}
 /**
  * 打开数据库
  */
-export function openDB(version = 1): Promise<IDBDatabase> {
+export function openDB(
+  version = 1,
+  DB_NAME = DB_NAME_ENUM.chatDb,
+): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, version);
 
@@ -25,7 +31,7 @@ export function openDB(version = 1): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         // 使用 IChatHistory 中的 id 作为主键
         const objectStore = db.createObjectStore(STORE_NAME, {
-          keyPath: "id", 
+          keyPath: "id",
         });
 
         // 根据类型需求创建索引
@@ -46,7 +52,7 @@ export async function addChatData(db: IDBDatabase, data: IChatHistory) {
       const rawData = JSON.parse(JSON.stringify(data));
       const transaction = db.transaction([STORE_NAME], "readwrite");
       const store = transaction.objectStore(STORE_NAME);
-      
+
       // put 方法：存在则更新，不存在则新增
       const request = store.put(rawData);
 
@@ -64,7 +70,7 @@ export async function addChatData(db: IDBDatabase, data: IChatHistory) {
     }
   });
 }
-export function deleteChatData(db: IDBDatabase,id:number) {
+export function deleteChatData(db: IDBDatabase, id: number) {
   return new Promise((resolve, reject) => {
     try {
       const transaction = db.transaction([STORE_NAME], "readwrite");
