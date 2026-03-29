@@ -11,18 +11,25 @@
       class="flex items-center justify-between px-6 h-16 shrink-0 backdrop-blur-xl bg-white/70 dark:bg-[#1e293b]/70 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50"
     >
       <div class="flex items-center gap-3">
-        <div class="relative" @click="()=>isSidebarOpen = true">
+        <div class="relative" @click="() => (isSidebarOpen = true)">
           <div
             class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20"
           >
-            <img v-if="messages" :src="chatStore.currentChat!.imgUrl" alt="" class="w-full h-full object-cover">
+            <img
+              v-if="messages"
+              :src="chatStore.currentChat!.imgUrl"
+              alt=""
+              class="w-full h-full object-cover"
+            />
           </div>
           <div
             class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white dark:border-slate-900 rounded-full"
           ></div>
         </div>
         <div>
-          <h2 class="font-bold text-sm tracking-tight leading-tight">{{ chatStore.currentChat?.roleName }}</h2>
+          <h2 class="font-bold text-sm tracking-tight leading-tight">
+            {{ chatStore.currentChat?.roleName }}
+          </h2>
           <!-- <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
             {{ chatStore.currentChat?.system }}
           </p> -->
@@ -56,9 +63,15 @@
         <div
           class="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-6"
         >
-          <img :src="chatStore.currentChat!.imgUrl" alt="" class="w-full h-full object-cover">
+          <img
+            :src="chatStore.currentChat!.imgUrl"
+            alt=""
+            class="w-full h-full object-cover"
+          />
         </div>
-        <h1 class="text-xl font-bold mb-2">{{ chatStore.currentChat!.roleName }}</h1>
+        <h1 class="text-xl font-bold mb-2">
+          {{ chatStore.currentChat!.roleName }}
+        </h1>
         <p class="text-slate-500 text-sm mb-8">
           {{ chatStore.currentChat!.system }}
         </p>
@@ -81,7 +94,12 @@
           ]"
         >
           <div class="text-[15px] leading-relaxed whitespace-pre-wrap">
-            {{ msg.content }}
+            <span v-if="msg.role === 'assistant'">
+              {{ msg.content.talkResponse }}
+            </span>
+            <span v-else>
+              {{ msg.content }}
+            </span>
             <span
               v-if="msg?.typing"
               class="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-ping ml-1"
@@ -162,31 +180,43 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, nextTick, watch, computed } from "vue";
+import { ref, nextTick, watch, computed, reactive } from "vue";
 import chatAiBoxSide from "./chatAiBoxSide.vue";
-import { useChatStore } from '@/store'
-import type { IChatHistory } from "@/store/chatStore/chatStoreIndex.type";
-
-const chatStore = useChatStore()
+import { useChatStore, useMlcStore, useTransformerStore } from "@/store";
+import type {
+  IChatHistory,
+  IChatMessage,
+  IChatResponse,
+} from "@/store/chatStore/chatStoreIndex.type";
+import { TextStreamer } from "@huggingface/transformers";
+import { useUserStore } from "@/store";
+const userStore = useUserStore();
+const chatStore = useChatStore();
 // 侧边栏
 const isSidebarOpen = ref(false);
-const handleNewChat = ()=>{
-  console.log('handleNewChat');
-}
+const handleNewChat = () => {
+  console.log("handleNewChat");
+};
 
 const inputRef = ref<HTMLElement | null>(null);
 const isDark = ref(true);
 const inputContent = ref("");
 const isThinking = ref(false);
 const scrollRef = ref<HTMLElement | null>(null);
-// 假设你的消息接口定义如下 
-const messages = computed<(IChatHistory['chatContent'][number] & {typing?:boolean})[] | null>(()=>{
+// 假设你的消息接口定义如下
+const messages = computed<
+  (IChatHistory["chatContent"][number] & { typing?: boolean })[] | null
+>(() => {
   return chatStore.currentChat?.chatContent || null;
-})
+});
 
 const resetInput = () => {
   inputContent.value = "";
-  if (inputRef.value) {
+  resetInputHeight();
+};
+
+const resetInputHeight = () => {
+  if (inputRef.value && inputContent.value.length === 0) {
     inputRef.value.style.height = "auto";
   }
 };
@@ -195,7 +225,7 @@ const adjustHeight = (e: any) => {
   const el = e.target;
   el.style.height = "auto";
   el.style.height = `${el.scrollHeight}px`;
-  if (inputContent.value.length === 0) resetInput();
+  resetInputHeight();
 };
 
 const scrollToBottom = async (isFirst = false) => {
@@ -217,15 +247,25 @@ const sendMessage = async () => {
 
   // 1. 更新 UI：添加用户消息
   const currentTime = new Date().toLocaleString();
-  const userMessage = { role: 'user', content: userPrompt, chatTime: currentTime } as const;
-  
+  const userMessage = {
+    role: "user",
+    content: userPrompt,
+    chatTime: currentTime,
+  } as const;
+
   // 这里直接操作 chatContent 以便后续存入 IndexedDB/Store
-  chatStore.updateCurrentChatContent(userMessage); 
-  inputContent.value = '';
+  chatStore.updateCurrentChatContent(userMessage);
+  resetInput();
+  scrollToBottom();
   isThinking.value = true;
 
   // 2. 准备 AI 消息占位
-  const aiMsg:IChatHistory["chatContent"][number] = { role: 'assistant', content: {text:''}, chatTime: '', typing: true };
+  const aiMsg: IChatResponse = reactive<IChatResponse>({
+    role: "assistant",
+    content: { talkResponse: "" },
+    chatTime: "",
+    typing: true,
+  });
   // 注意：这里为了 UI 渲染，我们可能依然需要 messages.value = chat.chatContent
   // 假设你的页面是直接绑定 chat.chatContent 的
   chatStore.updateCurrentChatContent(aiMsg);
@@ -233,59 +273,78 @@ const sendMessage = async () => {
   try {
     // 3. 构建上下文消息列表
     // 提取历史记录中的 role 和 content，过滤掉还在 typing 的占位消息
-    const contextMessages = chat.chatContent
-      .filter(m => m.content !== '' || m.role === 'user')
-      .map(m => ({
-        role: m.role,
-        content: m.content
-      }));
+    const contextMessages: IChatMessage[] = chat.chatContent
+      .filter((m) => !(m.role === "assistant" && m.typing))
+      .map(
+        (m) =>
+          ({
+            role: m.role,
+            content: m.content,
+            chatTime: m.chatTime,
+          }) as IChatMessage,
+      ); // 强制断言
+    contextMessages.unshift({
+      role: "system",
+      content:
+        (userStore.isMobile ? chatStore.currentChatEn!.system : chat.system) +
+        (userStore.isMobile
+          ? `# Game Setting:
+[Insert the specific character background or world-building here]
 
-    const response = await fetch('http://localhost:11434/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'llama3.2:3b',
-        messages: [
-          { role: 'system', content: `你是一个游戏百科全书。当前选中的角色世界观是：${chat.system}` },
-          ...contextMessages // 注入历史上下文
-        ],
-        stream: true,
-      }),
+# Task Instructions:
+1. **Communication Style**: In the talkResponse field, interact with the user in a natural, human-like manner. Avoid environmental descriptions within the dialogue.
+2. **Progression**: Use the options field to provide the user with choices or next steps for the conversation.
+3. **Atmosphere**: Use the textBackground field to describe the user's current specific location, surroundings, or the prevailing mood.
+4. **Context Update**: Use the status field to provide a brief update on the current situation or the relationship between the two characters.
+5. **Strict Prohibition**: Output ONLY in valid JSON format. No conversational filler or explanatory text outside the JSON is allowed.
+
+# Constraint Format:
+{
+  "talkResponse": "Your character's dialogue here",
+  "options": ["Option 1", "Option 2", "Option 3"],
+  "textBackground": "Description of the scene and atmosphere",
+  "status": "Summary of the current situation"
+}`
+          : `# 游戏设定:
+
+# 任务说明：
+1. 表达方式：在 talkResponse 字段中，你与用户对话，需要符合人类对话的习惯，不需要环境描述。
+2. 决策推进：通过 options 提供给用户下一步与你的对话和选项。
+3. 场景描述：通过 textBackground 字段提供给用户当前所处的具体位置或氛围。
+4. 状态更新：通过 status 字段提供给用户两人的当前处境。
+5. 严格禁令：只允许输出 JSON 格式，禁止任何解释性文本。
+# 约束格式：
+{"talkResponse": "", "options": ["选项1", "选项2", ...], "textBackground": "", "status": ""}
+`),
+      chatTime: "",
     });
-
-    if (!response.body) return;
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n');
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const json = JSON.parse(line);
-          if (json.message?.content) {
-            aiMsg.content = json.message.content;
-            scrollToBottom();
-          }
-          if (json.done) {
-            aiMsg.typing = false;
-            aiMsg.chatTime = new Date().toLocaleString();
-            // 这里可以触发保存到 IndexedDB 的逻辑
-            chatStore.saveToIndexedDB(); 
-          }
-        } catch (e) {
-          console.error("流解析失败", e);
-        }
-      }
+    let output = "";
+    if (userStore.userInfo.type === "mlc") {
+      const mlcStore = useMlcStore();
+      const streamer = (text: string) => {
+        aiMsg.content.talkResponse += text;
+        scrollToBottom();
+      };
+      output = await mlcStore.aiChat(contextMessages, streamer);
+    } else if (userStore.userInfo.type === "transformers") {
+      const transformerStore = useTransformerStore();
+      const streamer = new TextStreamer(transformerStore.generator!.tokenizer, {
+        skip_prompt: true,
+        // Optionally, do something with the text (e.g., write to a textbox)
+        callback_function: (text) => {
+          aiMsg.content.talkResponse += text;
+          scrollToBottom();
+        },
+      });
+      output = await transformerStore.aiChat(contextMessages, streamer);
     }
+    aiMsg.content.talkResponse = output;
+    aiMsg.typing = false;
+    aiMsg.chatTime = new Date().toLocaleString();
+    chatStore.saveToIndexedDB();
   } catch (error) {
-    aiMsg.content.text = "连接失败，请检查 Ollama 服务。";
+    console.error(error);
+    aiMsg.content.talkResponse = "连接失败，请检查 Ollama 服务。";
     aiMsg.typing = false;
   } finally {
     isThinking.value = false;
@@ -302,11 +361,15 @@ watch(
   { immediate: true },
 );
 
-watch(()=>chatStore.currentChat?.id,()=>{
-  scrollToBottom(true)
-},{
-  immediate:true
-})
+watch(
+  () => chatStore.currentChat?.id,
+  () => {
+    scrollToBottom(true);
+  },
+  {
+    immediate: true,
+  },
+);
 </script>
 
 <style scoped>

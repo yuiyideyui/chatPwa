@@ -25,21 +25,21 @@ export interface ISystemChatContent extends IChatContent {
 
 /** 纯文本模式：仅文本 */
 interface ITxtAssistantContent {
-  text: string;
+  talkResponse: string;
 }
 
 /** 文本游戏模式：文本 + 选项 + 状态 */
 interface ITxtGameAssistantContent {
-  text: string;
+  talkResponse: string;
   options: string[];
   status: string;
 }
 
 /** 故事游戏模式：文本 + 选项 + 背景 + 状态 */
 interface IStoryGameAssistantContent {
-  text: string;
+  talkResponse: string;
   options: string[];
-  background: string;
+  textBackground: string;
   status: string;
 }
 
@@ -88,11 +88,15 @@ export interface ITxtGameChatHistory extends IChatHistoryBase {
   chatContent: (IUserChatContent | ISystemChatContent | ITxtGameAssistant)[];
 }
 
-/** 故事游戏历史：Assistant 有背景图 */
+/** 故事游戏历史：Assistant 有背景故事 */
 export interface IStoryGameChatHistory extends IChatHistoryBase {
   gameType: GameType.STORYGAME;
   chatContent: (IUserChatContent | ISystemChatContent | IStoryGameAssistant)[];
 }
+
+export type IChatMessage = IUserChatContent | ISystemChatContent | ITxtAssistant | ITxtGameAssistant | IStoryGameAssistant;
+
+export type IChatResponse = ITxtAssistant | ITxtGameAssistant | IStoryGameAssistant
 
 /** 最终导出的联合类型 */
 export type IChatHistory = ITxtChatHistory | ITxtGameChatHistory | IStoryGameChatHistory;

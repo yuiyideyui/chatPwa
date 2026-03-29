@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
+    "@mlc-ai/web-llm": "^0.2.82",
     "@unocss/reset": "^66.6.7",
     "@vitejs/plugin-vue-jsx": "^5.1.5",
+    "idb": "^8.0.3",
     "pinia": "^3.0.4",
     "vue": "^3.5.22",
     "vue-router": "^4.6.4"
@@ -19,6 +21,7 @@
   "devDependencies": {
     "@types/node": "^24.6.2",
     "@vite-pwa/assets-generator": "^1.0.2",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/tsconfig": "^0.8.1",
     "typescript": "~5.9.3",
