@@ -94,12 +94,12 @@
           ]"
         >
           <div class="text-[15px] leading-relaxed whitespace-pre-wrap">
-            <span v-if="msg.role === 'assistant'">
-              {{ msg.content.talkResponse }}
-            </span>
-            <span v-else>
-              {{ msg.content }}
-            </span>
+            <!-- jsx解析 -->
+            <StoryGameTemplate
+              :msg="msg"
+              :game-type="chatStore.currentChat!.gameType"
+              @select-option="handleSelectOption"
+            />
             <span
               v-if="msg?.typing"
               class="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-ping ml-1"
@@ -149,12 +149,12 @@
             placeholder="输入您的问题..."
             class="flex-1 bg-transparent border-none outline-none py-3 px-3 text-sm max-h-32 overflow-y-auto resize-none"
             @input="adjustHeight"
-            @keydown.enter.prevent="sendMessage"
+            @keydown.enter.prevent="() => sendMessage()"
             ref="inputRef"
           ></textarea>
 
           <button
-            @click="sendMessage"
+            @click="() => sendMessage()"
             :disabled="!inputContent.trim() || isThinking"
             :class="[
               'w-10 h-10 flex items-center justify-center rounded-2xl transition-all duration-300',
@@ -183,15 +183,20 @@
 import { ref, nextTick, watch, computed, reactive } from "vue";
 import chatAiBoxSide from "./chatAiBoxSide.vue";
 import { useChatStore, useMlcStore, useTransformerStore } from "@/store";
-import type {
-  IChatHistory,
-  IChatMessage,
-  IChatResponse,
+import {
+  GameType,
+  type IChatHistory,
+  type IChatMessage,
+  type IStoryGameAssistant,
 } from "@/store/chatStore/chatStoreIndex.type";
 import { TextStreamer } from "@huggingface/transformers";
 import { useUserStore } from "@/store";
+import { parseMlcTalkResponse } from "./parseMlcTalkRespone";
+import { StoryGameTemplate } from "./storyGameTemplate.tsx";
+import { TranslateType } from "@/store/transformerStore/transformerStoreIndex.ts";
 const userStore = useUserStore();
 const chatStore = useChatStore();
+const transformerStore = useTransformerStore();
 // 侧边栏
 const isSidebarOpen = ref(false);
 const handleNewChat = () => {
@@ -238,8 +243,8 @@ const scrollToBottom = async (isFirst = false) => {
   }
 };
 
-const sendMessage = async () => {
-  const userPrompt = inputContent.value;
+const sendMessage = async (userOptionsPrompt?: string) => {
+  const userPrompt = userOptionsPrompt || inputContent.value;
   if (!userPrompt.trim()) return;
 
   const chat = chatStore.currentChat; // 获取当前的 IChatHistory 实例
@@ -252,37 +257,75 @@ const sendMessage = async () => {
     content: userPrompt,
     chatTime: currentTime,
   } as const;
+  const userMessageEn = userStore.isMobile
+    ? ({
+        role: "user",
+        content: await transformerStore.translate(
+          userPrompt,
+          TranslateType.ZhToEn,
+        ),
+        chatTime: currentTime,
+      } as const)
+    : undefined;
 
   // 这里直接操作 chatContent 以便后续存入 IndexedDB/Store
-  chatStore.updateCurrentChatContent(userMessage);
+  chatStore.updateCurrentChatContent(userMessage, userMessageEn);
   resetInput();
   scrollToBottom();
   isThinking.value = true;
 
   // 2. 准备 AI 消息占位
-  const aiMsg: IChatResponse = reactive<IChatResponse>({
+  const aiMsg: IStoryGameAssistant = reactive<IStoryGameAssistant>({
     role: "assistant",
-    content: { talkResponse: "" },
+    content: { talkResponse: "", options: [], textBackground: "", status: "" },
     chatTime: "",
     typing: true,
   });
+  const aiMsgEn = userStore.isMobile
+    ? reactive<IStoryGameAssistant>({
+        role: "assistant",
+        content: {
+          talkResponse: "",
+          options: [],
+          textBackground: "",
+          status: "",
+        },
+        chatTime: "",
+        typing: true,
+      })
+    : undefined;
   // 注意：这里为了 UI 渲染，我们可能依然需要 messages.value = chat.chatContent
   // 假设你的页面是直接绑定 chat.chatContent 的
-  chatStore.updateCurrentChatContent(aiMsg);
+  chatStore.updateCurrentChatContent(aiMsg, aiMsgEn);
 
   try {
     // 3. 构建上下文消息列表
     // 提取历史记录中的 role 和 content，过滤掉还在 typing 的占位消息
-    const contextMessages: IChatMessage[] = chat.chatContent
-      .filter((m) => !(m.role === "assistant" && m.typing))
-      .map(
-        (m) =>
-          ({
-            role: m.role,
-            content: m.content,
-            chatTime: m.chatTime,
-          }) as IChatMessage,
-      ); // 强制断言
+    let contextMessages: IChatMessage[] = [];
+    if (userStore.isMobile) {
+      contextMessages = chatStore.currentChat.chatContent
+        .filter((m) => !(m.role === "assistant" && m.typing))
+        .map(
+          (m) =>
+            ({
+              role: m.role,
+              content: m.content,
+              chatTime: m.chatTime,
+            }) as IChatMessage,
+        ); // 强制断言
+    } else {
+      contextMessages = chat.chatContent
+        .filter((m) => !(m.role === "assistant" && m.typing))
+        .map(
+          (m) =>
+            ({
+              role: m.role,
+              content: m.content,
+              chatTime: m.chatTime,
+            }) as IChatMessage,
+        ); // 强制断言
+    }
+
     contextMessages.unshift({
       role: "system",
       content:
@@ -319,18 +362,77 @@ const sendMessage = async () => {
       chatTime: "",
     });
     let output = "";
+    const translateArray: Promise<void>[] = [];
     if (userStore.userInfo.type === "mlc") {
       const mlcStore = useMlcStore();
       const streamer = (text: string) => {
-        aiMsg.content.talkResponse += text;
+        const resText = parseMlcTalkResponse(text);
+        if (resText) {
+          if (typeof resText === "object" && !("endType" in resText)) {
+            if (resText.type === "options") {
+              const currLength = aiMsg.content[resText.type].length;
+              if (resText.next) {
+                aiMsg.content[resText.type][currLength - 1] = aiMsg.content[
+                  resText.type
+                ][currLength - 1]!.replace('",', "");
+                if (userStore.isMobile && aiMsgEn) {
+                  aiMsgEn.content[resText.type][currLength - 1] =
+                    aiMsgEn.content[resText.type][currLength - 1]!.replace(
+                      '",',
+                      "",
+                    );
+                }
+                translateArray.push(
+                  transformerStore
+                    .translate(
+                      aiMsg.content[resText.type][currLength - 1]!,
+                      TranslateType.EnToZh,
+                    )
+                    .then((res) => {
+                      aiMsg.content[resText.type][currLength - 1] = res;
+                    }),
+                );
+                aiMsg.content[resText.type].push("");
+                if (userStore.isMobile && aiMsgEn) {
+                  aiMsgEn.content[resText.type].push("");
+                }
+              } else {
+                aiMsg.content[resText.type][currLength - 1] += resText.content;
+                if (userStore.isMobile && aiMsgEn) {
+                  aiMsgEn.content[resText.type][currLength - 1] +=
+                    resText.content;
+                }
+              }
+            } else {
+              aiMsg.content[resText.type] += resText.content;
+              if (userStore.isMobile && aiMsgEn) {
+                aiMsgEn.content[resText.type] += resText.content;
+              }
+            }
+          } else if (typeof resText === "object" && "endType" in resText) {
+            //移动端需要转中文
+            if (userStore.isMobile) {
+              translateArray.push(
+                transformerStore
+                  .translate(
+                    aiMsg.content[resText.endType],
+                    TranslateType.EnToZh,
+                  )
+                  .then((res) => {
+                    aiMsg.content[resText.endType] = res;
+                  }),
+              );
+            }
+          } else {
+            aiMsg.content.talkResponse += resText;
+          }
+        }
         scrollToBottom();
       };
       output = await mlcStore.aiChat(contextMessages, streamer);
     } else if (userStore.userInfo.type === "transformers") {
-      const transformerStore = useTransformerStore();
       const streamer = new TextStreamer(transformerStore.generator!.tokenizer, {
         skip_prompt: true,
-        // Optionally, do something with the text (e.g., write to a textbox)
         callback_function: (text) => {
           aiMsg.content.talkResponse += text;
           scrollToBottom();
@@ -338,19 +440,28 @@ const sendMessage = async () => {
       });
       output = await transformerStore.aiChat(contextMessages, streamer);
     }
-    aiMsg.content.talkResponse = output;
+    if (chatStore.currentChat.gameType === GameType.STORYGAME) {
+    } else {
+      aiMsg.content.talkResponse = output;
+    }
     aiMsg.typing = false;
     aiMsg.chatTime = new Date().toLocaleString();
+    if (userStore.isMobile) {
+      await Promise.all(translateArray);
+    }
     chatStore.saveToIndexedDB();
   } catch (error) {
     console.error(error);
-    aiMsg.content.talkResponse = "连接失败，请检查 Ollama 服务。";
+    aiMsg.content.talkResponse = "生成失败请重试";
+    // sendMessage()
     aiMsg.typing = false;
   } finally {
     isThinking.value = false;
   }
 };
-
+const handleSelectOption = (option: string) => {
+  sendMessage(option);
+};
 // 监听暗号模式切换
 watch(
   isDark,

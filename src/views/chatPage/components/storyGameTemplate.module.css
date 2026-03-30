@@ -1,0 +1,107 @@
+/* 3. 业务样式 (引用变量) */
+.story-game-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 600px;
+  margin: 12px 0;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.talk-response-bubble {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--sg-text-main);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.option-card {
+  display: flex;
+  align-items: center;
+  padding: 14px 18px;
+  background: var(--sg-bg-card);
+  border: 1px solid var(--sg-border-card);
+  border-radius: 14px;
+  text-align: left;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  color: var(--sg-accent);
+  outline: none;
+}
+
+/* 移动端点击态优化 */
+@media (hover: hover) {
+  .option-card:hover {
+    border-color: var(--sg-accent);
+    background: var(--sg-accent-hover);
+  }
+}
+
+.option-card:active {
+  transform: scale(0.97);
+  background: var(--sg-accent-hover);
+}
+
+.option-index {
+  margin-right: 12px;
+  font-weight: 700;
+  opacity: 0.6;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.9em;
+}
+
+.background-context {
+  margin-top: 12px;
+  padding: 0 10px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.divider::before, .divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--sg-divider), transparent);
+}
+
+.divider-text {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--sg-text-muted);
+  padding: 0 12px;
+  opacity: 0.7;
+}
+
+.context-text {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--sg-text-muted);
+  line-height: 1.6;
+  text-align: center;
+}
+
+.status-tag {
+  align-self: flex-start;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 6px;
+  background: var(--sg-status-bg);
+  color: var(--sg-status-text);
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}

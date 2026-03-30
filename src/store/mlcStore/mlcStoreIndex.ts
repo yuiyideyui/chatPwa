@@ -37,7 +37,6 @@ export const useMlcStore = defineStore("mlc", () => {
     if (!generator.value) throw new Error("Engine not initialized");
 
     const prepareSendMessages = async (messages: any[]) => {
-      const userStore = useUserStore();
       let transformerStore: any = null;
 
       // 1. 只有移动端且需要翻译时，才进行一次性导入
@@ -107,41 +106,44 @@ export const useMlcStore = defineStore("mlc", () => {
       top_p: 0.9,
       stream: true,
       response_format: responseFormat,
-      max_tokens: 256,
-      extra_body: {
-        enable_thinking: true,
-      },
+      max_tokens: 512,
     });
-    // console.log(
-    //   "chunks.choices[0]!.message.content!",
-    //   chunks.choices[0]!.message.content!,
-    // );
-    // return chunks.choices[0]!.message.content!;
     let fullOutput = "";
-    let isMetaArea = false; // 是否进入了元数据标签区
-
+    let isMetaArea = "start"; // 是否进入了元数据标签区
+    let responseText = "";
+    let tagBuffer = "";
     for await (const chunk of chunks) {
+      if (isMetaArea === "end") break;
       const delta = chunk.choices[0]?.delta?.content || "";
+      if (!delta || delta.trim() === "") continue;
+      console.info('🛵delta',delta)
       fullOutput += delta;
-
       // 逻辑：一旦检测到标签开始，停止向 UI 回传文本
-      if (delta.includes("<game_meta>")) {
-        isMetaArea = true;
+      if (isMetaArea === "start" && fullOutput.includes("<game_meta>")) {
+        isMetaArea = "ing";
+        continue
       }
-
-      // 只有在非标签区，才直接把内容喂给 UI（实现丝滑流式）
-      if (!isMetaArea && delta) {
-        // 如果 delta 包含标签前缀的部分，做一次截断处理（可选）
-        const cleanDelta = delta.split("<game_meta>")[0];
-        if (cleanDelta) {
-          chunkCallBack(cleanDelta);
+      if (isMetaArea === "ing") {
+        if (delta.includes("<") || tagBuffer.length > 0) {
+          tagBuffer += delta;
+          // 检查缓冲区是否已经包含完整的结束标签
+          if (tagBuffer.includes("</game_meta>")) {
+            isMetaArea = "end";
+            tagBuffer = ""; // 清空
+          }
+          // 容错处理：如果 tagBuffer 里的内容已经很长且不匹配标签开头，说明不是标签
+          else if (tagBuffer.length > 20 && !tagBuffer.startsWith("</")) {
+            chunkCallBack(tagBuffer);
+            responseText += tagBuffer
+            tagBuffer = "";
+          }
+        } else {
+          responseText += delta;
+          chunkCallBack(delta);
         }
       }
     }
-
-    // 结束后，你可以从 fullOutput 中提取 JSON 并进行逻辑处理
-    // 比如：const meta = JSON.parse(fullOutput.match(/<game_meta>\n([\s\S]*?)\n<\/game_meta>/)[1]);
-    return fullOutput;
+    return responseText;
   }
 
   return { generator, setGenerator, aiChat };

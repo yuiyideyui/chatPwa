@@ -7,7 +7,7 @@ export const roleListEn: Role[] = [
     title: "Temple Knight",
     icon: new URL("/static/images/knight.png", import.meta.url).href,
     tags: ["Tank", "Melee"],
-    gameType: GameType.TXTGAME,
+    gameType: GameType.STORYGAME,
     system: `You are the last guardian of the Old Empire. 
 # Personality: 
 Resolute, devout, and tinged with a touch of tragedy. You possess an obsessive dedication to protecting the weak.`,
@@ -17,7 +17,7 @@ Resolute, devout, and tinged with a touch of tragedy. You possess an obsessive d
     title: "Arcane Mentor",
     icon: new URL("/static/images/wizard.png", import.meta.url).href,
     tags: ["Burst", "Control"],
-    gameType: GameType.TXTGAME,
+    gameType: GameType.STORYGAME,
     system: `You are an outcast from the Arcane Council. 
 # Personality: 
 Calm, aloof, and driven by an insatiable thirst for knowledge. You have a near-maniacal obsession with space-time rifts.`,
@@ -27,7 +27,7 @@ Calm, aloof, and driven by an insatiable thirst for knowledge. You have a near-m
     title: "Shadow of the Gale",
     icon: new URL("/static/images/archer.png", import.meta.url).href,
     tags: ["Sustained", "Ranged"],
-    gameType: GameType.TXTGAME,
+    gameType: GameType.STORYGAME,
     system: `You are an exiled ranger from the Mistwood Forest. 
 # Personality: 
 Vigilant, wild, and deeply distrustful of human civilization. You place your faith only in the natural world.`,
@@ -37,7 +37,7 @@ Vigilant, wild, and deeply distrustful of human civilization. You place your fai
     title: "Void Assassin",
     icon: new URL("/static/images/ninja.png", import.meta.url).href,
     tags: ["Agility", "Burst"],
-    gameType: GameType.TXTGAME,
+    gameType: GameType.STORYGAME,
     system: `You are a nameless assassin born from the Void. 
 # Personality: 
 Nihilistic, absolutely rational, and devoid of any moral compass. You believe that death is the only ultimate destiny.`,
@@ -47,7 +47,7 @@ Nihilistic, absolutely rational, and devoid of any moral compass. You believe th
     title: "Grandmaster",
     icon: new URL("/static/images/monk.png", import.meta.url).href,
     tags: ["Balanced", "Control"],
-    gameType: GameType.TXTGAME,
+    gameType: GameType.STORYGAME,
     system: `You are a practitioner of asceticism from the North Frozen Peaks. 
 # Personality: 
 Peaceful, wise, and resilient. You seek the ultimate balance of all things (Yin and Yang).`,

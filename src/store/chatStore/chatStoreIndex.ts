@@ -64,12 +64,21 @@ export const useChatStore = defineStore("chat", () => {
   // 更新当前对话的内容（例如 Ollama 返回流时调用）
   const updateCurrentChatContent = (
     chatData: IChatHistory["chatContent"][number],
+    chatDataEn?: IChatHistory["chatContent"][number],
   ) => {
     const chat = _chatHistory.value.find(
       (item) => item.id === _currentChatId.value,
     );
     if (chat) {
       (chat.chatContent as IChatMessage[]).push(chatData);
+    }
+    if (userStore.isMobile && chatDataEn) {
+      const chatEn = _chatHistoryEn.value.find(
+        (item) => item.id === _currentChatId.value,
+      );
+      if (chatEn) {
+        (chatEn.chatContent as IChatMessage[]).push(chatDataEn);
+      }
     }
   };
 

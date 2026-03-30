@@ -1,3 +1,28 @@
 body,p{
     margin: 0;
 }
+/* 1. 定义色彩变量 (默认浅色/兼容模式) */
+:root {
+  --sg-text-main: #334155;
+  --sg-text-muted: #64748b;
+  --sg-bg-card: rgba(0, 0, 0, 0.03);
+  --sg-border-card: rgba(0, 0, 0, 0.08);
+  --sg-accent: #2563eb;
+  --sg-accent-hover: rgba(37, 99, 235, 0.1);
+  --sg-divider: rgba(0, 0, 0, 0.1);
+  --sg-status-bg: #e2e8f0;
+  --sg-status-text: #475569;
+}
+
+/* 2. 深色模式覆盖 (由 chatPwa 或系统控制的 .dark 类) */
+:is(.dark) {
+  --sg-text-main: #ececec;
+  --sg-text-muted: #94a3b8;
+  --sg-bg-card: rgba(255, 255, 255, 0.05);
+  --sg-border-card: rgba(255, 255, 255, 0.1);
+  --sg-accent: #60a5fa;
+  --sg-accent-hover: rgba(96, 165, 250, 0.15);
+  --sg-divider: rgba(255, 255, 255, 0.1);
+  --sg-status-bg: #334155;
+  --sg-status-text: #cbd5e1;
+}
