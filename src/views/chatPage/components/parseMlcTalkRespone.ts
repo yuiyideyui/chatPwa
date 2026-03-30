@@ -49,7 +49,12 @@ let responseStatus: responseStatusEmum | undefined; // pending, talkResponse, op
 let responseTexting = false;
 export const parseMlcTalkResponse = (
   text: string,
-): IResponseStatus | IResponseStatusOptions | void | string | IResponseStatusEnd => {
+):
+  | IResponseStatus
+  | IResponseStatusOptions
+  | void
+  | string
+  | IResponseStatusEnd => {
   const my_text = text.trim();
   if (my_text.includes("{")) {
     responseStatus = responseStatusEmum.pending;
@@ -109,7 +114,10 @@ const parseMlcTalkResponseOptions = (text: string) => {
     responseTexting = false;
     allContent += my_text.split("]")[1];
     //在next返回后做翻译就行
-    return ;
+    return {
+      type: responseStatus as responseStatusEmum.options,
+      next: true,
+    };
   }
   if (responseTexting) {
     isNextString += my_text;

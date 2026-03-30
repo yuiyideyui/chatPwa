@@ -303,7 +303,7 @@ const sendMessage = async (userOptionsPrompt?: string) => {
     // 提取历史记录中的 role 和 content，过滤掉还在 typing 的占位消息
     let contextMessages: IChatMessage[] = [];
     if (userStore.isMobile) {
-      contextMessages = chatStore.currentChat.chatContent
+      contextMessages = chatStore.currentChatEn!.chatContent
         .filter((m) => !(m.role === "assistant" && m.typing))
         .map(
           (m) =>
