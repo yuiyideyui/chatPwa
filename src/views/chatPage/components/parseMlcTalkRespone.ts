@@ -31,6 +31,7 @@ interface IResponseStatusOptions {
   type: responseStatusEmum.options;
   next?: boolean;
   content?: string;
+  isEnd?: boolean;
 }
 
 type InoOptions =
@@ -109,13 +110,15 @@ let isNextString = "";
 const parseMlcTalkResponseOptions = (text: string) => {
   const my_text = text.trim();
   if (my_text.includes("]") && responseTexting) {
+    const my_responseStatus = responseStatus;
     clearAllContent();
     nextResponseStatus();
     responseTexting = false;
     allContent += my_text.split("]")[1];
     //在next返回后做翻译就行
     return {
-      type: responseStatus as responseStatusEmum.options,
+      type: my_responseStatus as responseStatusEmum.options,
+      isEnd: true,
       next: true,
     };
   }
