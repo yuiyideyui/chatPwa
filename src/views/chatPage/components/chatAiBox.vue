@@ -303,8 +303,10 @@ const sendMessage = async (userOptionsPrompt?: string) => {
     // 提取历史记录中的 role 和 content，过滤掉还在 typing 的占位消息
     let contextMessages: IChatMessage[] = [];
     if (userStore.isMobile) {
-      contextMessages = chatStore.currentChatEn!.chatContent
-        .filter((m) => !(m.role === "assistant" && m.typing))
+      contextMessages = chatStore
+        .currentChatEn!.chatContent.filter(
+          (m) => !(m.role === "assistant" && m.typing),
+        )
         .map(
           (m) =>
             ({
@@ -374,33 +376,35 @@ const sendMessage = async (userOptionsPrompt?: string) => {
               if (resText.next) {
                 aiMsg.content[resText.type][currLength - 1] = aiMsg.content[
                   resText.type
-                ][currLength - 1]!.replace('",', "");
+                ][currLength - 1]!.replace(/"(?:,)?$/, "");
                 if (userStore.isMobile && aiMsgEn) {
                   aiMsgEn.content[resText.type][currLength - 1] =
                     aiMsgEn.content[resText.type][currLength - 1]!.replace(
-                      '",',
+                      /"(?:,)?$/,
                       "",
                     );
+                  translateArray.push(
+                    transformerStore
+                      .translate(
+                        aiMsg.content[resText.type][currLength - 1]!,
+                        TranslateType.EnToZh,
+                      )
+                      .then((res) => {
+                        aiMsg.content[resText.type][currLength - 1] = res;
+                      }),
+                  );
                 }
-                translateArray.push(
-                  transformerStore
-                    .translate(
-                      aiMsg.content[resText.type][currLength - 1]!,
-                      TranslateType.EnToZh,
-                    )
-                    .then((res) => {
-                      aiMsg.content[resText.type][currLength - 1] = res;
-                    }),
-                );
-                aiMsg.content[resText.type].push("");
-                if (userStore.isMobile && aiMsgEn) {
-                  aiMsgEn.content[resText.type].push("");
+                if (!resText.isEnd) {
+                  aiMsg.content[resText.type].push("");
+                  if (userStore.isMobile && aiMsgEn) {
+                    aiMsgEn.content[resText.type].push("");
+                  }
                 }
               } else {
-                aiMsg.content[resText.type][currLength - 1] += resText.content;
+                aiMsg.content[resText.type][currLength - 1] += resText.content!;
                 if (userStore.isMobile && aiMsgEn) {
                   aiMsgEn.content[resText.type][currLength - 1] +=
-                    resText.content;
+                    resText.content!;
                 }
               }
             } else {

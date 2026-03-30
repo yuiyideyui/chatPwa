@@ -112,29 +112,59 @@ export const useMlcStore = defineStore("mlc", () => {
     let isMetaArea = "start"; // 是否进入了元数据标签区
     let responseText = "";
     let tagBuffer = "";
+
     for await (const chunk of chunks) {
-      if (isMetaArea === "end") break;
       const delta = chunk.choices[0]?.delta?.content || "";
       if (!delta || delta.trim() === "") continue;
-      console.info('🛵delta',delta)
+
+      console.info("🛵delta", delta);
       fullOutput += delta;
-      // 逻辑：一旦检测到标签开始，停止向 UI 回传文本
-      if (isMetaArea === "start" && fullOutput.includes("<game_meta>")) {
-        isMetaArea = "ing";
-        continue
+
+      if (isMetaArea === "end") {
+        // 重要：不要在这里 break！让 AsyncGenerator 自然消耗完流，
+        // 防止底层 WebWorker 一直处于忙碌状态，从而引发第二次死锁
+        continue;
       }
+
+      // 逻辑：一旦检测到标签开始，切换状态
+      if (isMetaArea === "start") {
+        if (fullOutput.includes("<game_meta>")) {
+          isMetaArea = "ing";
+          // 提取出本 chunk 中 <game_meta> 之后可能包含的实际内容
+          const splitParts = delta.split("<game_meta>");
+          if (splitParts.length > 1) {
+            const afterTag = splitParts[1];
+            if (afterTag) {
+              responseText += afterTag;
+              chunkCallBack(afterTag);
+            }
+          }
+        } else {
+          // 可选：如果你想在 UI 展示标签前的文本，加在这里
+          // responseText += delta;
+          // chunkCallBack(delta);
+        }
+        continue;
+      }
+
       if (isMetaArea === "ing") {
         if (delta.includes("<") || tagBuffer.length > 0) {
           tagBuffer += delta;
           // 检查缓冲区是否已经包含完整的结束标签
           if (tagBuffer.includes("</game_meta>")) {
             isMetaArea = "end";
+            // 如果 </game_meta> 前面有残留正常字符，应该补充一下
+            const beforeEndTag = tagBuffer.split("</game_meta>")[0];
+            if (beforeEndTag) {
+              chunkCallBack(beforeEndTag);
+              responseText += beforeEndTag;
+            }
             tagBuffer = ""; // 清空
           }
           // 容错处理：如果 tagBuffer 里的内容已经很长且不匹配标签开头，说明不是标签
           else if (tagBuffer.length > 20 && !tagBuffer.startsWith("</")) {
             chunkCallBack(tagBuffer);
-            responseText += tagBuffer
+            responseText += tagBuffer;
             tagBuffer = "";
           }
         } else {
