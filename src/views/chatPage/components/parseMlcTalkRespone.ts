@@ -1,8 +1,3 @@
-let talkResponseText = "";
-let optionsText = "";
-let textBackgroundText = "";
-let statusText = "";
-
 let allContent = "";
 
 enum responseStatusEmum {
