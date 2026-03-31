@@ -42,7 +42,7 @@ export default defineConfig({
       },
 
       devOptions: {
-        enabled: true,
+        enabled: false,
         navigateFallback: "index.html",
         suppressWarnings: true,
         type: "module",

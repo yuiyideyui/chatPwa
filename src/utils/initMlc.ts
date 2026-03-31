@@ -18,11 +18,8 @@ export async function initMlc(
         const progress = p.progress * 100;
         downloadProgress.value = progress;
         if (p.progress === 1) {
+          console.info('设备状态',p.text)
           downloadProgress.value = 100;
-          setTimeout(() => {
-            if (downloadProgress.value === 100) downloadProgress.value = 0;
-            isLoading.value = false;
-          }, 100);
         }
       },
       appConfig: {
@@ -39,11 +36,14 @@ export async function initMlc(
             },
           },
         ],
-
         useIndexedDBCache: true,
       },
     },
   );
   console.log("engine", engine);
+  if (downloadProgress.value === 100) {
+    downloadProgress.value = 0
+  };
+  isLoading.value = false;
   mlcStore.setGenerator(engine);
 }
