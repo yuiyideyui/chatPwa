@@ -5,7 +5,8 @@ import vue from "@vitejs/plugin-vue";
 import UnoCSS from "unocss/vite";
 import vueJsx from "@vitejs/plugin-vue-jsx";
 import { fileURLToPath } from "node:url";
-import basicSsl from "@vitejs/plugin-basic-ssl";
+// import basicSsl from "@vitejs/plugin-basic-ssl";
+import mkcert from "vite-plugin-mkcert";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
@@ -13,7 +14,7 @@ export default defineConfig({
     UnoCSS(),
     vueJsx(),
     vueDevTools(),
-    basicSsl(),
+    mkcert(),
     VitePWA({
       strategies: "injectManifest",
       srcDir: "src",
@@ -41,7 +42,7 @@ export default defineConfig({
       },
 
       devOptions: {
-        enabled: false,
+        enabled: true,
         navigateFallback: "index.html",
         suppressWarnings: true,
         type: "module",
@@ -54,11 +55,33 @@ export default defineConfig({
       "Cross-Origin-Opener-Policy": "same-origin",
       "Cross-Origin-Embedder-Policy": "require-corp",
     },
-    https: true,
+    host: true,
+  },
+  preview: {
+    host: true,
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    },
   },
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
+  },
+  build: {
+    target: "esnext",
+    minify: "terser", // 有时 esbuild 压缩会导致 Worker 内部变量冲突
+    polyfillModulePreload: false,
+    rollupOptions: {
+      output: {
+        // 确保不会生成依赖 DOM 的代码块
+        format: "es",
+      },
+    },
+  },
+  worker: {
+    format: "es",
+    // 关键：在 Worker 打包时不应用某些可能导致 DOM 操作的插件
   },
 });

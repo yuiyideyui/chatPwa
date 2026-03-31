@@ -4,8 +4,9 @@ import { useTransformerStore } from "@/store/transformerStore/transformerStoreIn
 import type { Ref } from "vue";
 
 const url = window.location.origin;
+env.allowRemoteModels = true;
 env.allowLocalModels = true;
-env.backends.onnx.wasm!.proxy = true; // 开启多线程代理
+env.backends.onnx.wasm!.proxy = false; // 开启多线程代理
 env.backends.onnx.logLevel = "verbose";
 env.backends.onnx.wasm!.wasmPaths = url + "/wasm/";
 env.localModelPath = url + "/models/";
