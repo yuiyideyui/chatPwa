@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex flex-col h-100vh w-100vw bg-[#f8fafc] dark:bg-[#0f172a] transition-colors duration-500 overflow-hidden text-slate-900 dark:text-slate-100 font-sans"
+    class="flex flex-col h-100dvh w-100vw bg-[#f8fafc] dark:bg-[#0f172a] transition-colors duration-500 overflow-hidden text-slate-900 dark:text-slate-100 font-sans"
   >
     <chatAiBoxSide
       :is-open="isSidebarOpen"

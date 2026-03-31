@@ -12,7 +12,26 @@ export enum TranslateType {
   EnToZh = "en-to-zh",
   ZhToEn = "zh-to-en",
 }
+const translatorConfig = {
+  // 1. 核心：禁用采样。强制模型每次都选概率最高的词（Greedy Search）
+  // 这是防止“加料”最有效的手段
+  do_sample: false,
 
+  // 2. 束搜索：设为 1 即为贪婪搜索。
+  // 如果想要翻译更稳健一点可以设为 2-3，但 1 是最不容易“自作多情”的
+  num_beams: 1,
+
+  // 3. 长度控制：防止 AI 翻译完之后觉得没说够，继续往下编
+  // 设置最大生成长度，通常为输入的 2-3 倍即可
+  max_new_tokens: 512,
+
+  // 4. 重复惩罚：保持在 1.0 - 1.2 之间。
+  // 太高（如 2.0）会导致模型为了不重复而被迫找奇怪的同义词，反而变“加料”
+  repetition_penalty: 1.1,
+
+  // 5. 早期停止：配合 num_beams > 1 使用
+  early_stopping: true,
+}
 export const useTransformerStore = defineStore("transformer", () => {
   const generator = shallowRef<TextGenerationPipeline | null>(null);
   const setGenerator = (data: TextGenerationPipeline) => {
@@ -61,23 +80,9 @@ export const useTransformerStore = defineStore("transformer", () => {
   const translate = async (text: string, options: TranslateType) => {
     let output;
     if (options === TranslateType.EnToZh) {
-      output = await translatorEnToZh.value!(text, {
-        // 关键参数：重复惩罚。值 > 1.0 会降低重复词出现的概率
-        repetition_penalty: 1.2,
-        // 建议：使用 beam search 提高质量，避免贪婪搜索陷入局部最优
-        num_beams: 3,
-        // 告诉模型在遇到句子结束符 (EOS) 时停止
-        early_stopping: true,
-      } as GenerationConfig | any);
+      output = await translatorEnToZh.value!(text, translatorConfig as GenerationConfig | any);
     } else {
-      output = await translatorZhToEn.value!(text, {
-        // 关键参数：重复惩罚。值 > 1.0 会降低重复词出现的概率
-        repetition_penalty: 1.2,
-        // 建议：使用 beam search 提高质量，避免贪婪搜索陷入局部最优
-        num_beams: 3,
-        // 告诉模型在遇到句子结束符 (EOS) 时停止
-        early_stopping: true,
-      } as GenerationConfig | any);
+      output = await translatorZhToEn.value!(text, translatorConfig as GenerationConfig | any);
     }
     console.log("output", output);
     //@ts-ignore

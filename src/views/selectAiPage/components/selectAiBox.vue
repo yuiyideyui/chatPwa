@@ -11,7 +11,7 @@
   </div>
 
   <div
-    class="flex flex-col h-100vh w-100vw justify-end pb-12 box-border select-none"
+    class="flex flex-col h-100dvh w-100vw justify-end pb-12 box-border select-none"
   >
     <div
       class="flex-1 flex flex-col justify-center items-center text-white px-8"

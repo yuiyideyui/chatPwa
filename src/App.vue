@@ -52,7 +52,12 @@ onMounted(async () => {
   <div class="top-progress-container">
     <div v-if="isLoading" class="loading-toast">
       <span class="spinner"></span>
-      模型加载中 {{ Math.round(downloadProgress) }}%
+      <span v-if="Math.round(downloadProgress) !== 100">
+        模型加载中 {{ Math.round(downloadProgress) }}%
+      </span>
+      <span v-else>
+        正在初始化...
+      </span>
     </div>
   </div>
   <router-view></router-view>

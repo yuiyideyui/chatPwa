@@ -45,8 +45,12 @@ export const initTranslator = async () => {
   console.info("初始化翻译模块");
   const transformerStore = useTransformerStore();
   const [translatorEnToZh, translatorZhToEn] = await Promise.all([
-    pipeline("translation", "opus-mt-en-zh"),
-    pipeline("translation", "opus-mt-zh-en"),
+    pipeline("translation", "opus-mt-en-zh",{
+      dtype:'q8'
+    }),
+    pipeline("translation", "opus-mt-zh-en",{
+      dtype:'q8'
+    }),
   ]);
   console.info("初始化翻译模块完成");
   transformerStore.setTranslatorEnToZh(translatorEnToZh);
