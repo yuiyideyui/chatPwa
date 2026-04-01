@@ -1,95 +1,98 @@
 # ChatPWA
 
-ChatPWA is a Progress Web Application (PWA) that provides a fast, responsive, and privacy-first local AI conversational experience entirely in your browser. Powered by WebGPU and modern Web Worker architectures, it runs large language models (LLMs) like Llama 3 locally on your device without communicating with any external servers.
+ChatPWA 是一个渐进式 Web 应用（PWA），提供快速、响应式且以隐私为优先的本地 AI 对话体验。它完全运行在浏览器中，基于 WebGPU 和现代 Web Worker 架构，可在本地设备上运行大语言模型（LLM），无需与任何外部服务器通信。
 
-## ✨ Features
+![alt text](image.png)![alt text](image-1.png)![alt text](image-2.png)
 
-- **100% Local AI:** Runs models (like `Llama-3.2-1B-Instruct`) locally using WebGPU via `@mlc-ai/web-llm`. Your chats and data never leave your device.
-- **Progressive Web App (PWA):** Installable on desktops and mobile devices for an app-like experience. Includes offline support using Workbox Service Workers.
-- **Web Worker Architecture:** Heavily utilizes Web Workers to offload heavy AI computation from the main UI thread, ensuring smooth and responsive interactions.
-- **Local Caching:** Uses IndexedDB (`idb`) to securely cache model weights and your chat history so you don't need to re-download massive models on subsequent visits.
-- **Transformer Integration:** Built-in support for Hugging Face Transformers (`@huggingface/transformers`) directly in the browser.
+## ✨ 功能特点
 
-## 🛠️ Technology Stack
+- **100% 本地 AI：** 使用 `@mlc-ai/web-llm` 基于 WebGPU 在本地运行模型（如 `Llama-3.2-1B-Instruct`），聊天数据不会上传。
+- **PWA 应用：** 支持桌面和移动端安装，具备离线能力（基于 Workbox Service Worker）。
+- **Web Worker 架构：** 将 AI 推理任务放入 Worker 线程，保证 UI 流畅。
+- **本地缓存：** 使用 IndexedDB（`idb`）缓存模型和聊天记录，避免重复下载。
+- **Transformers 支持：** 集成 `@huggingface/transformers`，支持浏览器端推理。
 
-**Frontend Framework:**
+## 🛠️ 技术栈
 
-- [Vue 3](https://vuejs.org/) (Composition API, `<script setup>`)
-- [Vite](https://vitejs.dev/) (Next Generation Frontend Tooling)
-- [TypeScript](https://www.typescriptlang.org/) for static typing.
+### 前端框架
 
-**State Management & Routing:**
+- Vue 3（Composition API + `<script setup>`）
+- Vite
+- TypeScript
 
-- [Pinia](https://pinia.vuejs.org/) (Robust state management for Vue apps)
-- [Vue Router 4](https://router.vuejs.org/)
+### 状态管理与路由
 
-**Styling:**
+- Pinia
+- Vue Router 4
 
-- [UnoCSS](https://unocss.dev/) (Instant on-demand atomic CSS engine)
-- Direct JSX component support with `@vitejs/plugin-vue-jsx`.
+### 样式
 
-**AI & Local Inference:**
+- UnoCSS
+- JSX（`@vitejs/plugin-vue-jsx`）
 
-- [`@mlc-ai/web-llm`](https://github.com/mlc-ai/web-llm) (High-performance LLM inference locally on WebGPU)
-- [`@huggingface/transformers`](https://github.com/huggingface/transformers.js) (State-of-the-art machine learning for the web)
+### AI 推理
 
-**PWA & Local Storage:**
+- `@mlc-ai/web-llm`
+- `@huggingface/transformers`
 
-- `vite-plugin-pwa` & `workbox-*` (Service Worker and offline cache strategy)
-- `idb` (Lightweight wrapper for IndexedDB)
+### PWA 与存储
 
-## 🚀 Getting Started
+- `vite-plugin-pwa` / workbox
+- idb（IndexedDB 封装）
 
-### Prerequisites
+## 🚀 快速开始
 
-Ensure you have [Node.js](https://nodejs.org/) installed along with an up-to-date modern web browser that supports **WebGPU** (e.g., Chrome, Edge).
+### 前置要求
 
-### Installation
+- 安装 Node.js
+- 使用支持 WebGPU 的浏览器（Chrome / Edge）
 
-1. Clone the repository and install dependencies:
+### 安装
 
-   ```bash
-   # Using npm
-   npm install
+```bash
+npm install
+# 或
+yarn install
+# 或
+pnpm install
+```
 
-   # Or using yarn
-   yarn install
+### 模型准备
 
-   # Or using pnpm
-   pnpm install
-   ```
+请将模型和 wasm 文件放入：
 
-2. Please ensure the required model/wasm files are downloaded/served into the `public/` directory (e.g., `public/models/Llama-3.2-1B...` and `public/wasm/...`) based on your model configuration in `src/utils/initMlc.ts`.
+```
+public/models/
+public/wasm/
+```
 
-### Running Locally
+并与 `src/utils/initMlc.ts` 配置保持一致。
+
+### 启动开发
 
 ```bash
 npm run dev
 ```
 
-_Note: Since WebGPU securely runs in contexts, we use `vite-plugin-mkcert` to provide secure local HTTPS proxy connections to enable Web Workers/WebGL components properly during development._
+> 注意：开发环境需要 HTTPS（使用 vite-plugin-mkcert），否则 WebGPU / Worker 可能无法运行。
 
-### Building for Production
-
-Compile and bundle the project for production:
+### 构建生产
 
 ```bash
 npm run build
 ```
 
-The output will be generated in the `dist` directory. You can preview it locally using:
+预览：
 
 ```bash
 npm run preview
 ```
 
-## ⚙️ Configuration
+## ⚙️ 配置说明
 
-The AI initialization configuration can be configured in:
-
-- `src/utils/initMlc.ts` for WebLLM configurations, model endpoints, memory limits, and IndexedDB caching logic.
-- `src/utils/initTransformer.ts` for secondary transformer/feature configurations.
+- `src/utils/initMlc.ts`：WebLLM 初始化、模型配置、缓存策略
+- `src/utils/initTransformer.ts`：Transformers 配置
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+MIT License
