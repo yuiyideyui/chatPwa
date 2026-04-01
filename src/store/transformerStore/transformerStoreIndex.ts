@@ -13,25 +13,11 @@ export enum TranslateType {
   ZhToEn = "zh-to-en",
 }
 const translatorConfig = {
-  // 1. 核心：禁用采样。强制模型每次都选概率最高的词（Greedy Search）
-  // 这是防止“加料”最有效的手段
   do_sample: false,
-
-  // 2. 束搜索：设为 1 即为贪婪搜索。
-  // 如果想要翻译更稳健一点可以设为 2-3，但 1 是最不容易“自作多情”的
-  num_beams: 1,
-
-  // 3. 长度控制：防止 AI 翻译完之后觉得没说够，继续往下编
-  // 设置最大生成长度，通常为输入的 2-3 倍即可
-  max_new_tokens: 512,
-
-  // 4. 重复惩罚：保持在 1.0 - 1.2 之间。
-  // 太高（如 2.0）会导致模型为了不重复而被迫找奇怪的同义词，反而变“加料”
+  num_beams: 1, // 贪婪搜索是防止幻觉的最佳手段
+  max_new_tokens: 256, // 翻译任务不需要 512 这么长，短一点更稳
   repetition_penalty: 1.1,
-
-  // 5. 早期停止：配合 num_beams > 1 使用
-  early_stopping: true,
-}
+};
 export const useTransformerStore = defineStore("transformer", () => {
   const generator = shallowRef<TextGenerationPipeline | null>(null);
   const setGenerator = (data: TextGenerationPipeline) => {
@@ -39,7 +25,7 @@ export const useTransformerStore = defineStore("transformer", () => {
   };
   const aiChat = async (
     messages: IChatMessage[],
-    streamer: TextStreamer,
+    callback_function: (data: string) => void,
   ): Promise<string> => {
     const sendMessages = messages.map((item) => {
       return {
@@ -50,10 +36,14 @@ export const useTransformerStore = defineStore("transformer", () => {
             : item.content,
       };
     });
+    const streamer = new TextStreamer(generator.value!.tokenizer, {
+      skip_prompt: true,
+      callback_function,
+    });
     const output = await generator.value!(sendMessages, {
       max_new_tokens: 100, // 对话初期限制长度，防止它跑偏
       do_sample: true,
-      temperature: 0.3, // 降低温度，增加确定性
+      temperature: 0.2, // 降低温度，增加确定性
       top_p: 0.8,
       repetition_penalty: 1.25, // 核心：防止它开始念经
       no_repeat_ngram_size: 3, // 物理禁止复读
@@ -80,9 +70,15 @@ export const useTransformerStore = defineStore("transformer", () => {
   const translate = async (text: string, options: TranslateType) => {
     let output;
     if (options === TranslateType.EnToZh) {
-      output = await translatorEnToZh.value!(text, translatorConfig as GenerationConfig | any);
+      output = await translatorEnToZh.value!(
+        text,
+        translatorConfig as GenerationConfig | any,
+      );
     } else {
-      output = await translatorZhToEn.value!(text, translatorConfig as GenerationConfig | any);
+      output = await translatorZhToEn.value!(
+        text,
+        translatorConfig as GenerationConfig | any,
+      );
     }
     console.log("output", output);
     //@ts-ignore

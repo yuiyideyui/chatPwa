@@ -128,10 +128,14 @@
     >
       <div class="max-w-screen-md mx-auto relative group">
         <div
-          class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-[30px] opacity-0 group-focus-within:opacity-20 blur transition duration-1000"
-        ></div>
-
+          v-if="!messages?.length"
+          class="text-center text-slate-500 text-sm mb-8 animate-fade-in w-20 h-10 leading-10 m-auto bg-white dark:bg-slate-800 rounded-[28px] border border-slate-200 dark:border-slate-700 p-2 shadow-2xl cursor-pointer dark:color-[#39c5bb]"
+          @click="handleStartTextChat"
+        >
+          开始
+        </div>
         <div
+          v-else
           class="relative bg-white dark:bg-slate-800 rounded-[28px] border border-slate-200 dark:border-slate-700 p-2 flex items-end shadow-2xl"
         >
           <button
@@ -146,7 +150,7 @@
           <textarea
             v-model="inputContent"
             rows="1"
-            placeholder="输入您的问题..."
+            placeholder="输入..."
             class="flex-1 bg-transparent border-none outline-none py-3 px-3 text-sm max-h-32 overflow-y-auto resize-none"
             @input="adjustHeight"
             @keydown.enter.prevent="() => sendMessage()"
@@ -155,7 +159,7 @@
 
           <button
             @click="() => sendMessage()"
-            :disabled="!inputContent.trim() || isThinking"
+            :disabled="!inputContent.trim()"
             :class="[
               'w-10 h-10 flex items-center justify-center rounded-2xl transition-all duration-300',
               inputContent.trim()
@@ -189,11 +193,12 @@ import {
   type IChatMessage,
   type IStoryGameAssistant,
 } from "@/store/chatStore/chatStoreIndex.type";
-import { TextStreamer } from "@huggingface/transformers";
 import { useUserStore } from "@/store";
-import { parseMlcTalkResponse } from "./parseMlcTalkRespone";
-import { StoryGameTemplate } from "./storyGameTemplate.tsx";
+import { parseMlcTalkResponse } from "./parseMlcTalkRespone.ts";
+import { StoryGameTemplate } from "../../../components/mlcStory/storyGameTemplate.tsx";
 import { TranslateType } from "@/store/transformerStore/transformerStoreIndex.ts";
+import { isLoadingChatModel } from "@/hook/gobalHook.ts";
+import { dialogMessage } from "@/components/dialogMessage.tsx";
 const userStore = useUserStore();
 const chatStore = useChatStore();
 const transformerStore = useTransformerStore();
@@ -243,11 +248,32 @@ const scrollToBottom = async (isFirst = false) => {
   }
 };
 
+const handleStartTextChat = () => {
+  const text = `
+生成游戏的序章
+    `;
+  sendMessage(text);
+};
+
 const sendMessage = async (userOptionsPrompt?: string) => {
+  if (isLoadingChatModel.value || isThinking.value) {
+    dialogMessage({
+      jsx: (
+        <div>
+          <p>当前有任务正在进行，请稍后再试</p>
+        </div>
+      ),
+      position: "center",
+      timeClose: 1000,
+    });
+    return;
+  }
   const userPrompt = userOptionsPrompt || inputContent.value;
+  console.log("userPrompt", userPrompt);
   if (!userPrompt.trim()) return;
 
   const chat = chatStore.currentChat; // 获取当前的 IChatHistory 实例
+  console.log("chat", chat);
   if (!chat) return;
 
   // 1. 更新 UI：添加用户消息
@@ -267,7 +293,7 @@ const sendMessage = async (userOptionsPrompt?: string) => {
         chatTime: currentTime,
       } as const)
     : undefined;
-
+  console.log("userMessageEn", userMessageEn);
   // 这里直接操作 chatContent 以便后续存入 IndexedDB/Store
   chatStore.updateCurrentChatContent(userMessage, userMessageEn);
   resetInput();
@@ -297,7 +323,6 @@ const sendMessage = async (userOptionsPrompt?: string) => {
   // 注意：这里为了 UI 渲染，我们可能依然需要 messages.value = chat.chatContent
   // 假设你的页面是直接绑定 chat.chatContent 的
   chatStore.updateCurrentChatContent(aiMsg, aiMsgEn);
-
   try {
     // 3. 构建上下文消息列表
     // 提取历史记录中的 role 和 content，过滤掉还在 typing 的占位消息
@@ -307,14 +332,13 @@ const sendMessage = async (userOptionsPrompt?: string) => {
         .currentChatEn!.chatContent.filter(
           (m) => !(m.role === "assistant" && m.typing),
         )
-        .map(
-          (m) =>
-            ({
-              role: m.role,
-              content: m.content,
-              chatTime: m.chatTime,
-            }) as IChatMessage,
-        ); // 强制断言
+        .map((m) => {
+          return {
+            role: m.role,
+            content: m.content,
+            chatTime: m.chatTime,
+          } as IChatMessage;
+        }); // 强制断言
     } else {
       contextMessages = chat.chatContent
         .filter((m) => !(m.role === "assistant" && m.typing))
@@ -334,14 +358,13 @@ const sendMessage = async (userOptionsPrompt?: string) => {
         (userStore.isMobile ? chatStore.currentChatEn!.system : chat.system) +
         (userStore.isMobile
           ? `# Game Setting:
-[Insert the specific character background or world-building here]
 
 # Task Instructions:
-1. **Communication Style**: In the talkResponse field, interact with the user in a natural, human-like manner. Avoid environmental descriptions within the dialogue.
-2. **Progression**: Use the options field to provide the user with choices or next steps for the conversation.
-3. **Atmosphere**: Use the textBackground field to describe the user's current specific location, surroundings, or the prevailing mood.
-4. **Context Update**: Use the status field to provide a brief update on the current situation or the relationship between the two characters.
-5. **Strict Prohibition**: Output ONLY in valid JSON format. No conversational filler or explanatory text outside the JSON is allowed.
+1. **Expression**: Use the talkResponse field to describe the current plot and narrative content.
+2. **Decision Advancement**: Provide next-step choices via the options field based on the user's current situation to drive the game's progression. Do not repeat previous options.
+3. **Scene Description**: Use the textBackground field to describe the user's specific location or the current atmosphere.
+4. **Status Update**: Use the status field to provide an overview of the user's current circumstances.
+5. **Strict Mandate**: Output JSON format only. Any explanatory text is strictly prohibited. Avoid using double quotes within JSON string values (use single quotes or ensure proper escaping if necessary).
 
 # Constraint Format:
 {
@@ -350,16 +373,23 @@ const sendMessage = async (userOptionsPrompt?: string) => {
   "textBackground": "Description of the scene and atmosphere",
   "status": "Summary of the current situation"
 }`
-          : `# 游戏设定:
+          : `# Task: 剧情推动
+根据用户输入，以 JSON 格式续写剧情。
 
-# 任务说明：
-1. 表达方式：在 talkResponse 字段中，你与用户对话，需要符合人类对话的习惯，不需要环境描述。
-2. 决策推进：通过 options 提供给用户下一步与你的对话和选项。
-3. 场景描述：通过 textBackground 字段提供给用户当前所处的具体位置或氛围。
-4. 状态更新：通过 status 字段提供给用户两人的当前处境。
-5. 严格禁令：只允许输出 JSON 格式，禁止任何解释性文本。
-# 约束格式：
-{"talkResponse": "", "options": ["选项1", "选项2", ...], "textBackground": "", "status": ""}
+# JSON 字段说明 (Strict):
+1. talkResponse: 描述剧情、对话或你的动作。
+2. options: 提供 2-5 个推动剧情的选择（禁止重复之前的选项）。
+3. textBackground: 描述当前环境（如：腐烂的泥土味、幽暗的树影）。
+4. status: 简述玩家处境（如：被包围、精疲力竭、暂时安全）。
+
+# Output Rules (CRITICAL):
+- [Constraint 1] ONLY output a single JSON object. 
+- [Constraint 2] NO explanation or text outside the JSON.
+- [Constraint 3] DO NOT use double quotes (") inside JSON values. Use single quotes (') instead.
+- [Constraint 4] Ensure the JSON is valid and minified.
+
+# JSON Template:
+{"talkResponse": "剧情内容", "options": ["选项1", "选项2"], "textBackground": "场景描述", "status": "状态"}
 `),
       chatTime: "",
     });
@@ -433,24 +463,35 @@ const sendMessage = async (userOptionsPrompt?: string) => {
         }
         scrollToBottom();
       };
+      console.log("contextMessages", contextMessages);
       output = await mlcStore.aiChat(contextMessages, streamer);
     } else if (userStore.userInfo.type === "transformers") {
-      const streamer = new TextStreamer(transformerStore.generator!.tokenizer, {
-        skip_prompt: true,
-        callback_function: (text) => {
-          aiMsg.content.talkResponse += text;
-          scrollToBottom();
-        },
-      });
-      output = await transformerStore.aiChat(contextMessages, streamer);
+      // const streamer = new TextStreamer(transformerStore.generator!.tokenizer, {
+      //   skip_prompt: true,
+      //   callback_function: (text) => {
+      //     aiMsg.content.talkResponse += text;
+      //     scrollToBottom();
+      //   },
+      // });
+      const callback_function = (text: string) => {
+        aiMsg.content.talkResponse += text;
+        scrollToBottom();
+      };
+      output = await transformerStore.aiChat(
+        contextMessages,
+        callback_function,
+      );
     }
     if (chatStore.currentChat.gameType === GameType.STORYGAME) {
     } else {
       aiMsg.content.talkResponse = output;
     }
+    const currTime = new Date().toLocaleString();
     aiMsg.typing = false;
-    aiMsg.chatTime = new Date().toLocaleString();
+    aiMsg.chatTime = currTime;
     if (userStore.isMobile) {
+      aiMsgEn!.typing = false;
+      aiMsgEn!.chatTime = currTime;
       await Promise.all(translateArray);
     }
     chatStore.saveToIndexedDB();

@@ -1,10 +1,9 @@
 import { defineStore } from "pinia";
-import { shallowRef } from "vue";
-import type { WebWorkerMLCEngine } from "@mlc-ai/web-llm";
+import { ref, shallowRef } from "vue";
+import type { ResponseFormat, WebWorkerMLCEngine } from "@mlc-ai/web-llm";
 import type { IChatMessage } from "../chatStore/chatStoreIndex.type";
 import { useUserStore } from "../userStore/userStoreIndex";
-import { TranslateType } from "../transformerStore/transformerStoreIndex";
-
+import { Type } from "@sinclair/typebox";
 /**
  * 定义元数据的 Schema
  */
@@ -49,24 +48,24 @@ export const useMlcStore = defineStore("mlc", () => {
       // 2. 使用 Promise.all 处理异步翻译
       const sendMessages = await Promise.all(
         messages.map(async (item, index) => {
-          const isLast = index === messages.length - 1;
+          // const isLast = index === messages.length - 1;
           let content = "";
 
           // 处理内容提取逻辑
           if (typeof item.content === "object" && item.content !== null) {
-            content = item.content.talkResponse || "";
+            content = JSON.stringify(item.content) || "";
           } else {
             content = String(item.content || "");
           }
 
           // 3. 移动端翻译逻辑：仅针对最后一条消息（通常是用户刚输入的内容）
-          if (userStore.isMobile && isLast && transformerStore) {
-            // 假设 translate 是一个异步方法
-            content = await transformerStore.translate(
-              content,
-              TranslateType.ZhToEn,
-            );
-          }
+          // if (userStore.isMobile && isLast && transformerStore) {
+          //   // 假设 translate 是一个异步方法
+          //   content = await transformerStore.translate(
+          //     content,
+          //     TranslateType.ZhToEn,
+          //   );
+          // }
 
           return {
             role: item.role,
@@ -80,7 +79,7 @@ export const useMlcStore = defineStore("mlc", () => {
     const sendMessages = await prepareSendMessages(messages);
     console.log("sendMessages", sendMessages);
     // 使用参考示例中的 triggered_tags 结构
-    const responseFormat: any = {
+    const responseFormat: ResponseFormat = {
       type: "structural_tag",
       structural_tag: {
         type: "structural_tag",
@@ -90,7 +89,19 @@ export const useMlcStore = defineStore("mlc", () => {
           tags: [
             {
               begin: "<game_meta>\n",
-              content: { type: "json_schema", json_schema: metaSchema },
+              type: "tag",
+              content: {
+                type: "json_schema",
+                json_schema: Type.Object({
+                  talkResponse: Type.String(),
+                  options: Type.Array(Type.String(), {
+                    maxItems: 5,
+                    minItems: 3,
+                  }),
+                  textBackground: Type.String(),
+                  status: Type.String(),
+                }),
+              },
               end: "\n</game_meta>",
             },
           ],
@@ -99,6 +110,45 @@ export const useMlcStore = defineStore("mlc", () => {
         },
       },
     };
+    // const responseFormat: ResponseFormat  = {
+    //   type: "structural_tag",
+    //   structural_tag: {
+    //     type: "structural_tag",
+    //     format: {
+    //       type: "triggered_tags",
+    //       triggers: [
+    //         "<talkResponse>",
+    //         "<textBackground>",
+    //         "<status>",
+    //         "<options>",
+    //       ],
+    //       tags: [
+    //         {
+    //           begin: "<talkResponse>\n",
+    //           content: { type: "string" },
+    //           end: "\n</talkResponse>",
+    //         },
+    //         {
+    //           begin: "<textBackground>\n",
+    //           content: { type: "string" },
+    //           end: "\n</textBackground>",
+    //         },
+    //         {
+    //           begin: "<status>\n",
+    //           content: { type: "string" },
+    //           end: "\n</status>",
+    //         },
+    //         {
+    //           begin: "<options>\n",
+    //           content: { type: "array", items: { type: "string" } },
+    //           end: "\n</options>",
+    //         },
+    //       ],
+    //       at_least_one: true,
+    //       stop_after_first: true,
+    //     },
+    //   },
+    // };
 
     const chunks = await generator.value.chat.completions.create({
       messages: sendMessages,

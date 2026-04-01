@@ -11,6 +11,7 @@
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
     "@mlc-ai/web-llm": "^0.2.82",
+    "@sinclair/typebox": "^0.34.49",
     "@unocss/reset": "^66.6.7",
     "@vitejs/plugin-vue-jsx": "^5.1.5",
     "idb": "^8.0.3",

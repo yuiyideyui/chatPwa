@@ -7,7 +7,8 @@ import {
   deleteChatData,
   DB_NAME_ENUM,
 } from "@/utils/chatIndexedDb";
-import { useUserStore } from "../userStore/userStoreIndex";
+import { useUserStore } from "@/store";
+import type { TextStreamer } from "@huggingface/transformers";
 
 export const useChatStore = defineStore("chat", () => {
   const userStore = useUserStore();
@@ -112,6 +113,16 @@ export const useChatStore = defineStore("chat", () => {
     _currentChatId.value = null;
   };
 
+  const aiChat:
+    | ((
+        messages: IChatMessage[],
+        chunkCallBack: (data: string) => void,
+      ) => Promise<string>)
+    | ((
+        messages: IChatMessage[],
+        callback_function: (data: string) => void,
+      ) => Promise<string>) = undefined as any;
+
   return {
     chatHistory,
     currentChat,
@@ -125,5 +136,6 @@ export const useChatStore = defineStore("chat", () => {
     deleteChat,
     setChatHistoryEn,
     chatHistoryEn,
+    aiChat,
   };
 });

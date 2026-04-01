@@ -1,5 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
+import { useChatStore, useMlcStore, useTransformerStore } from "@/store";
+import type { IChatMessage } from "../chatStore/chatStoreIndex.type";
 export const useUserStore = defineStore("user", () => {
   const userInfo = ref<{
     name: string;
@@ -25,6 +27,19 @@ export const useUserStore = defineStore("user", () => {
       navigator.userAgent.match(/BlackBerry/i) ||
       navigator.userAgent.match(/Windows Phone/i)
     );
+    const chatStore = useChatStore();
+    const mlcStore = useMlcStore();
+    const transformerStore = useTransformerStore();
+    chatStore.aiChat = async (
+      messages: IChatMessage[],
+      options: (data: string) => void,
+    ) => {
+      if (userInfo.value.type === "transformers") {
+        return await transformerStore.aiChat(messages, options);
+      } else {
+        return await mlcStore.aiChat(messages, options);
+      }
+    };
   }
 
   return {
