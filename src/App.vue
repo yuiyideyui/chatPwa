@@ -7,11 +7,11 @@ import { router } from "./router";
 import { initMlc } from "./utils/initMlc";
 import { selectEngine } from "./utils/utils";
 import { initTransformers, initTranslator } from "./utils/initTransformer";
+import { isLoadingChatModel } from "./hook/gobalHook";
 
 const chatStore = useChatStore();
 const userStore = useUserStore();
 const downloadProgress = ref(0);
-const isLoading = ref(true); // 控制提示文字显示
 userStore.initIsMobile();
 onMounted(async () => {
   const indexDb = await openDB();
@@ -26,7 +26,6 @@ onMounted(async () => {
       router.push("/");
     }
   }
-  // initTransformers(downloadProgress, isLoading);
   if (userStore.isMobile) {
     const indexDbEn = await openDB(1, DB_NAME_ENUM.chatDbEn);
     if (indexDbEn) {
@@ -35,14 +34,15 @@ onMounted(async () => {
         chatStore.setChatHistoryEn(historyEn);
       }
     }
-    initTranslator();
+    // 初始化翻译->避免同时加载mlc导致卡死
+    await initTranslator();
   }
   selectEngine().then((res) => {
     console.info("引擎：", res);
     if (res === "mlc") {
-      initMlc(downloadProgress, isLoading);
+      initMlc(downloadProgress, isLoadingChatModel);
     } else {
-      initTransformers(downloadProgress, isLoading);
+      initTransformers(downloadProgress, isLoadingChatModel);
     }
   });
 });
@@ -50,14 +50,12 @@ onMounted(async () => {
 
 <template>
   <div class="top-progress-container">
-    <div v-if="isLoading" class="loading-toast">
+    <div v-if="isLoadingChatModel" class="loading-toast">
       <span class="spinner"></span>
       <span v-if="Math.round(downloadProgress) !== 100">
         模型加载中 {{ Math.round(downloadProgress) }}%
       </span>
-      <span v-else>
-        正在初始化...
-      </span>
+      <span v-else> 正在初始化... </span>
     </div>
   </div>
   <router-view></router-view>

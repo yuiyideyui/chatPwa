@@ -26,6 +26,9 @@
           <p class="text-white/70 text-sm tracking-widest uppercase">
             —— {{ currentRole.title }} ——
           </p>
+          <p class="text-white/70 text-sm tracking-widest uppercase mt-2">
+            {{ currentRole.system }}
+          </p>
           <div class="mt-4 flex gap-2 justify-center">
             <span
               v-for="tag in currentRole.tags"
@@ -50,10 +53,11 @@
           :ref="(el) => setItemRef(el, index)"
           @click="handleSelect(index)"
           :class="[
-            'role-card relative flex-shrink-0 w-32vw h-42vw rounded-2xl transition-all duration-500 ease-out cursor-pointer overflow-hidden',
+            // PC端调整宽度为固定像素值，移动端保留比例
+            'role-card relative flex-shrink-0 w-[200px] h-[280px] md:w-[15vw] md:h-[22vw] rounded-2xl transition-all duration-500 ease-out cursor-pointer overflow-hidden',
             activeIndex === index
-              ? 'selected-card scale-125 z-10'
-              : 'scale-90 opacity-40 blur-0.5px',
+              ? 'selected-card scale-110 md:scale-125 z-10 shadow-[0_0_30px_rgba(255,255,255,0.2)]'
+              : 'scale-90 opacity-40 blur-[0.5px] hover:opacity-70 hover:scale-95', // 增加 hover 效果
           ]"
         >
           <div
@@ -103,20 +107,25 @@
 
     <button
       @click="handleConfirm"
-      class="mx-auto mt-8 px-12 py-3 bg-white text-[#1a6b65] rounded-full font-bold shadow-xl active:scale-95 transition-transform"
+      class="mx-auto mt-8 px-12 py-3 bg-white text-[#1a6b65] rounded-full font-bold shadow-xl active:scale-95 transition-transform cursor-pointer"
     >
       确认选择
     </button>
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="tsx">
 import { ref, onMounted, computed } from "vue";
 import { router } from "@/router";
 import { useChatStore, useUserStore } from "@/store";
 import type { Role } from "./selectAiBox.type";
 import { roleListZh } from "./roleListZh";
-import type { IChatHistory } from "@/store/chatStore/chatStoreIndex.type";
+import {
+  // GameType,
+  type IChatHistory,
+} from "@/store/chatStore/chatStoreIndex.type";
+// import { dialogMessage } from "@/components/dialogMessage";
+// import { StoryGameTemplate } from "@/components/mlcStory/storyGameTemplate";
 
 const chatStore = useChatStore();
 const userStore = useUserStore();
@@ -152,6 +161,97 @@ const handleSelect = (index: number) => {
 };
 
 const handleConfirm = async () => {
+  createStory();
+
+  // 后面尝试在这里创建故事
+
+  //   const msg = ref("");
+  //   const isGenerating = ref(false);
+  //   /**是否是编辑模式 */
+  //   const isEdit = ref(false);
+  //   //AI 生成故事的方法
+  //   const handleAIGenerate = async () => {
+  //     msg.value = "";
+  //     if (isGenerating.value) return;
+  //     isGenerating.value = true;
+  //     try {
+  //       await chatStore.aiChat(
+  //         [
+  //           {
+  //             role: "system",
+  //             content: currentRole.value.system,
+  //             chatTime: "",
+  //           },
+  //           {
+  //             role: "user",
+  //             content: `
+  // # 生成游戏内容与任务
+  // 根据角色人物请给我一个故事背景开始，用户进行文字游戏
+  //             `,
+  //             chatTime: "",
+  //           },
+  //         ],
+  //         (text) => {
+  //           msg.value += text;
+  //         },
+  //       );
+
+  //       // 模拟延迟
+  //       // await new Promise((resolve) => setTimeout(resolve, 1000));
+  //       // msg.value = "在一个遥远的星系，有一颗由水晶构成的行星...";
+  //     } finally {
+  //       isGenerating.value = false;
+  //     }
+  //   };
+
+  //   const { close } = dialogMessage({
+  //     position: "center",
+  //     jsx: () => (
+  //       <div class="p-6 flex flex-col gap-4 min-w-[300px]">
+  //         <h3 class="text-lg font-bold text-center">设定你的故事</h3>
+  //         {isEdit.value ? (
+  //           <textarea
+  //             class="w-full h-40 p-3 border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+  //             placeholder="请输入你的故事背景，或者点击下方按钮让 AI 为你灵感迸发..."
+  //             value={msg.value}
+  //             onInput={(e: any) => (msg.value = e.target.value)}
+  //           ></textarea>
+  //         ) : (
+  //           <StoryGameTemplate
+  //             msg={{ role: "assistant", content: msg.value }}
+  //             gameType={GameType.STORYGAME}
+  //           />
+  //         )}
+  //         <div class="flex flex-col gap-3">
+  //           {/* AI 自动生成按钮 */}
+  //           <button
+  //             onClick={() => handleAIGenerate()}
+  //             disabled={isGenerating.value}
+  //             class="w-full py-2 px-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
+  //           >
+  //             {isGenerating.value ? "✨ 灵感构思中..." : "✨ AI 自动生成故事"}
+  //           </button>
+
+  //           {/* 确认提交按钮 */}
+  //           <button
+  //             onClick={() => createStory(msg.value, close)}
+  //             class="w-full py-2 px-4 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors border border-transparent"
+  //           >
+  //             确认故事内容
+  //           </button>
+
+  //           <button
+  //             onClick={() => close()}
+  //             class="text-sm text-slate-400 hover:text-slate-600"
+  //           >
+  //             再想想
+  //           </button>
+  //         </div>
+  //       </div>
+  //     ),
+  //   });
+};
+const createStory = async () => {
   let initChatEn: IChatHistory | undefined = undefined;
   if (userStore.isMobile) {
     const { roleListEn } = await import("./roleListEn");
