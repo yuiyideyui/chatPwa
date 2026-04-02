@@ -1,29 +1,21 @@
 import { defineStore } from "pinia";
-import { ref, shallowRef } from "vue";
+import { shallowRef } from "vue";
 import type { ResponseFormat, WebWorkerMLCEngine } from "@mlc-ai/web-llm";
 import type { IChatMessage } from "../chatStore/chatStoreIndex.type";
-import { useUserStore } from "../userStore/userStoreIndex";
 import { Type } from "@sinclair/typebox";
 /**
  * 定义元数据的 Schema
  */
-const metaSchema = {
-  type: "object",
-  properties: {
-    talkResponse: { type: "string" },
-    options: {
-      type: "array",
-      items: { type: "string" },
-      maxItems: 5,
-      minItems: 0,
-    },
-    textBackground: { type: "string" },
-    status: { type: "string" },
-  },
-  required: ["talkResponse", "options", "textBackground", "status"],
-};
+const metaSchema = Type.Object({
+  talkResponse: Type.String(),
+  options: Type.Array(Type.String(), {
+    maxItems: 5,
+    minItems: 3,
+  }),
+  textBackground: Type.String(),
+  status: Type.String(),
+});
 export const useMlcStore = defineStore("mlc", () => {
-  const userStore = useUserStore();
   const generator = shallowRef<WebWorkerMLCEngine | null>(null);
   const setGenerator = (data: WebWorkerMLCEngine) => {
     generator.value = data;
@@ -36,37 +28,15 @@ export const useMlcStore = defineStore("mlc", () => {
     if (!generator.value) throw new Error("Engine not initialized");
 
     const prepareSendMessages = async (messages: any[]) => {
-      let transformerStore: any = null;
-
-      // 1. 只有移动端且需要翻译时，才进行一次性导入
-      if (userStore.isMobile) {
-        const { useTransformerStore } =
-          await import("../transformerStore/transformerStoreIndex");
-        transformerStore = useTransformerStore();
-      }
-
-      // 2. 使用 Promise.all 处理异步翻译
       const sendMessages = await Promise.all(
-        messages.map(async (item, index) => {
-          // const isLast = index === messages.length - 1;
+        messages.map(async (item) => {
           let content = "";
-
           // 处理内容提取逻辑
           if (typeof item.content === "object" && item.content !== null) {
             content = JSON.stringify(item.content) || "";
           } else {
             content = String(item.content || "");
           }
-
-          // 3. 移动端翻译逻辑：仅针对最后一条消息（通常是用户刚输入的内容）
-          // if (userStore.isMobile && isLast && transformerStore) {
-          //   // 假设 translate 是一个异步方法
-          //   content = await transformerStore.translate(
-          //     content,
-          //     TranslateType.ZhToEn,
-          //   );
-          // }
-
           return {
             role: item.role,
             content: content,
@@ -92,15 +62,7 @@ export const useMlcStore = defineStore("mlc", () => {
               type: "tag",
               content: {
                 type: "json_schema",
-                json_schema: Type.Object({
-                  talkResponse: Type.String(),
-                  options: Type.Array(Type.String(), {
-                    maxItems: 5,
-                    minItems: 3,
-                  }),
-                  textBackground: Type.String(),
-                  status: Type.String(),
-                }),
+                json_schema: metaSchema,
               },
               end: "\n</game_meta>",
             },

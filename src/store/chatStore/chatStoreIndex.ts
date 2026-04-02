@@ -8,7 +8,6 @@ import {
   DB_NAME_ENUM,
 } from "@/utils/chatIndexedDb";
 import { useUserStore } from "@/store";
-import type { TextStreamer } from "@huggingface/transformers";
 
 export const useChatStore = defineStore("chat", () => {
   const userStore = useUserStore();
