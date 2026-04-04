@@ -11,6 +11,8 @@ import { useUserStore } from "@/store";
 
 export const useChatStore = defineStore("chat", () => {
   const userStore = useUserStore();
+  const MEMORY_GROUP_SIZE = 4;
+  const MEMORY_KEY = "conversation";
   // 1. 内部状态
   const _chatHistory = ref<IChatHistory[]>([]);
   const _chatHistoryEn = ref<IChatHistory[]>([]);
@@ -41,6 +43,54 @@ export const useChatStore = defineStore("chat", () => {
   };
   const setChatHistoryEn = (history: IChatHistory[]) => {
     _chatHistoryEn.value = history;
+  };
+
+  const formatMessageContent = (message: IChatMessage) => {
+    if (typeof message.content === "string") {
+      return message.content;
+    }
+    const talk = message.content.talkResponse || "";
+    const status =
+      "status" in message.content && message.content.status
+        ? `状态：${message.content.status}`
+        : "";
+    const options =
+      "options" in message.content && message.content.options?.length
+        ? `选项：${message.content.options.join("、")}`
+      : "";
+    return [talk, status, options].filter(Boolean).join(" | ");
+  };
+
+  const finalizedMessages = (chat: IChatHistory) => {
+    return chat.chatContent.filter(
+      (item) => item.role !== "system" && !(item.role === "assistant" && item.typing),
+    );
+  };
+
+  const saveMemoryForChat = (chat: IChatHistory | null) => {
+    if (!chat) return;
+    const availableMessages = finalizedMessages(chat);
+    const expectedMemoryCount = Math.floor(
+      availableMessages.length / MEMORY_GROUP_SIZE,
+    );
+    const memoryList = chat.memory[MEMORY_KEY] || [];
+    if (expectedMemoryCount <= memoryList.length) return;
+    const targetMessages = availableMessages.slice(
+      expectedMemoryCount * MEMORY_GROUP_SIZE - MEMORY_GROUP_SIZE,
+      expectedMemoryCount * MEMORY_GROUP_SIZE,
+    );
+    const eventContent = targetMessages
+      .map((item) => `${item.role === "user" ? "用户" : "角色"}：${formatMessageContent(item)}`)
+      .join("\n");
+    const chatTime = targetMessages[targetMessages.length - 1]?.chatTime || "";
+    chat.memory[MEMORY_KEY] = [...memoryList, { chatTime, eventContent }];
+  };
+
+  const saveChatMemory = () => {
+    saveMemoryForChat(currentChat.value);
+    if (userStore.isMobile) {
+      saveMemoryForChat(currentChatEn.value);
+    }
   };
 
   // 3. 操作方法
@@ -136,5 +186,6 @@ export const useChatStore = defineStore("chat", () => {
     setChatHistoryEn,
     chatHistoryEn,
     aiChat,
+    saveChatMemory,
   };
 });
