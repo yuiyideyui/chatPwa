@@ -326,36 +326,35 @@ const sendMessage = async (userOptionsPrompt?: string) => {
   try {
     // 3. 构建上下文消息列表
     // 提取历史记录中的 role 和 content，过滤掉还在 typing 的占位消息
-    let contextMessages: IChatMessage[] = [];
-    if (userStore.isMobile) {
-      contextMessages = chatStore
-        .currentChatEn!.chatContent.filter(
-          (m) => !(m.role === "assistant" && m.typing),
-        )
-        .map((m) => {
-          return {
+    const contextChat = userStore.isMobile ? chatStore.currentChatEn! : chat;
+    const contextMemory = contextChat.memory?.conversation || [];
+    const normalizedMessages = contextChat.chatContent
+      .filter((m) => !(m.role === "assistant" && m.typing))
+      .map(
+        (m) =>
+          ({
             role: m.role,
             content: m.content,
             chatTime: m.chatTime,
-          } as IChatMessage;
-        }); // 强制断言
-    } else {
-      contextMessages = chat.chatContent
-        .filter((m) => !(m.role === "assistant" && m.typing))
-        .map(
-          (m) =>
-            ({
-              role: m.role,
-              content: m.content,
-              chatTime: m.chatTime,
-            }) as IChatMessage,
-        ); // 强制断言
-    }
+          }) as IChatMessage,
+      );
+    const summarizedCount = contextMemory.length * 4;
+    const trimmedStartIndex =
+      summarizedCount > 0 ? Math.min(summarizedCount, normalizedMessages.length) : 0;
+    let contextMessages: IChatMessage[] = normalizedMessages.slice(trimmedStartIndex);
+    const memorySystemText = contextMemory.length
+      ? `# Long-term Memory:
+${contextMemory
+  .map((item, index) => `${index + 1}. ${item.eventContent}`)
+  .join("\n")}
+请将以上记忆视为已发生事实，避免和后续剧情冲突。`
+      : "";
 
     contextMessages.unshift({
       role: "system",
       content:
         (userStore.isMobile ? chatStore.currentChatEn!.system : chat.system) +
+        memorySystemText +
         (userStore.isMobile
           ? `# Game Setting:
 
@@ -494,6 +493,7 @@ const sendMessage = async (userOptionsPrompt?: string) => {
       aiMsgEn!.chatTime = currTime;
       await Promise.all(translateArray);
     }
+    await chatStore.saveChatMemory();
     chatStore.saveToIndexedDB();
   } catch (error) {
     console.error(error);

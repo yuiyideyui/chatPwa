@@ -72,14 +72,24 @@
           <p
             class="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3"
           >
-            更早之前
+            对话记忆
           </p>
-          <!-- <div class="space-y-1 opacity-70">
-            <div class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-not-allowed">
-              <span class="i-solar-history-line-duotone text-lg shrink-0"></span>
-              <span class="text-sm truncate font-medium">去年的创意方案回顾</span>
+          <div
+            v-if="currentMemoryList.length"
+            class="space-y-2 max-h-64 overflow-y-auto pr-1 no-scrollbar"
+          >
+            <div
+              v-for="(memoryItem, index) in currentMemoryList"
+              :key="`${memoryItem.chatTime}-${index}`"
+              class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 px-3 py-2 text-xs text-slate-600 dark:text-slate-300"
+            >
+              <p class="text-[10px] text-slate-400 mb-1">
+                记忆 {{ index + 1 }} · {{ memoryItem.chatTime || "未知时间" }}
+              </p>
+              <p class="leading-5 whitespace-pre-wrap">{{ memoryItem.eventContent }}</p>
             </div>
-          </div> -->
+          </div>
+          <p v-else class="px-3 text-xs text-slate-400">暂无记忆，继续对话即可自动生成。</p>
         </section>
       </nav>
 
@@ -108,6 +118,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { useChatStore } from "@/store";
 import { router } from "@/router";
 const chatStore = useChatStore();
@@ -116,6 +127,9 @@ defineProps<{
 }>();
 
 const emit = defineEmits(["close", "select-chat", "new-chat"]);
+const currentMemoryList = computed(
+  () => chatStore.currentChat?.memory?.conversation || [],
+);
 
 // const chatHistory = ref(chatStore.chatHistory)
 
