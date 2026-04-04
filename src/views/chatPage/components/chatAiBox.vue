@@ -494,6 +494,7 @@ const sendMessage = async (userOptionsPrompt?: string) => {
       aiMsgEn!.chatTime = currTime;
       await Promise.all(translateArray);
     }
+    chatStore.saveChatMemory();
     chatStore.saveToIndexedDB();
   } catch (error) {
     console.error(error);
