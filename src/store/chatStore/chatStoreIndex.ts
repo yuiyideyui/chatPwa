@@ -8,6 +8,10 @@ import {
   DB_NAME_ENUM,
 } from "@/utils/chatIndexedDb";
 import { useUserStore } from "@/store";
+import {
+  useTransformerStore,
+  TranslateType,
+} from "../transformerStore/transformerStoreIndex";
 
 export const useChatStore = defineStore("chat", () => {
   const userStore = useUserStore();
