@@ -5,8 +5,7 @@ import vue from "@vitejs/plugin-vue";
 import UnoCSS from "unocss/vite";
 import vueJsx from "@vitejs/plugin-vue-jsx";
 import { fileURLToPath } from "node:url";
-// import basicSsl from "@vitejs/plugin-basic-ssl";
-import mkcert from "vite-plugin-mkcert";
+import basicSsl from "@vitejs/plugin-basic-ssl";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
@@ -14,7 +13,7 @@ export default defineConfig({
     UnoCSS(),
     vueJsx(),
     vueDevTools(),
-    mkcert(),
+    basicSsl(),
     VitePWA({
       strategies: "injectManifest",
       srcDir: "src",
