@@ -493,7 +493,7 @@ ${contextMemory
       aiMsgEn!.chatTime = currTime;
       await Promise.all(translateArray);
     }
-    await chatStore.saveChatMemory();
+    chatStore.saveChatMemory();
     chatStore.saveToIndexedDB();
   } catch (error) {
     console.error(error);
