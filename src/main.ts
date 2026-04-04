@@ -10,4 +10,4 @@ app.use(pinia);
 app.use(router);
 app.mount("#app");
 //@ts-ignore
-new VConsole();
+// new VConsole();
