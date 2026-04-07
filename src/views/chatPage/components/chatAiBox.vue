@@ -347,7 +347,7 @@ const sendMessage = async (userOptionsPrompt?: string) => {
 ${contextMemory
   .map((item, index) => `${index + 1}. ${item.eventContent}`)
   .join("\n")}
-请将以上记忆视为已发生事实，避免和后续剧情冲突。`
+        ${userStore.isMobile ? "Please regard the above memory as a fact that has occurred, and avoid conflicting with the subsequent plot.":'请将以上记忆视为已发生事实，避免和后续剧情冲突。'}}`
       : "";
 
     contextMessages.unshift({
@@ -463,7 +463,8 @@ ${contextMemory
         scrollToBottom();
       };
       console.log("contextMessages", contextMessages);
-      output = await mlcStore.aiChat(contextMessages, streamer);
+
+      output = await chatStore.aiChat!(contextMessages, streamer, true);
     } else if (userStore.userInfo.type === "transformers") {
       // const streamer = new TextStreamer(transformerStore.generator!.tokenizer, {
       //   skip_prompt: true,
@@ -476,9 +477,10 @@ ${contextMemory
         aiMsg.content.talkResponse += text;
         scrollToBottom();
       };
-      output = await transformerStore.aiChat(
+      output = await chatStore.aiChat!(
         contextMessages,
         callback_function,
+        true,
       );
     }
     if (chatStore.currentChat.gameType === GameType.STORYGAME) {
@@ -493,8 +495,8 @@ ${contextMemory
       aiMsgEn!.chatTime = currTime;
       await Promise.all(translateArray);
     }
-    chatStore.saveChatMemory();
-    chatStore.saveToIndexedDB();
+    await chatStore.saveChatMemory();
+    await chatStore.saveToIndexedDB();
   } catch (error) {
     console.error(error);
     aiMsg.content.talkResponse = "生成失败请重试";

@@ -26,6 +26,7 @@ export const useTransformerStore = defineStore("transformer", () => {
   const aiChat = async (
     messages: IChatMessage[],
     callback_function: (data: string) => void,
+    isFormatted: boolean,
   ): Promise<string> => {
     const sendMessages = messages.map((item) => {
       return {

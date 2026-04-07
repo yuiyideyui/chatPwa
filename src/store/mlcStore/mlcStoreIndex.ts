@@ -24,7 +24,9 @@ export const useMlcStore = defineStore("mlc", () => {
   async function aiChat(
     messages: IChatMessage[],
     chunkCallBack: (data: string) => void,
+    isFormatted: boolean,
   ): Promise<string> {
+    console.log('isFormatted',isFormatted)
     if (!generator.value) throw new Error("Engine not initialized");
 
     const prepareSendMessages = async (messages: any[]) => {
@@ -72,53 +74,14 @@ export const useMlcStore = defineStore("mlc", () => {
         },
       },
     };
-    // const responseFormat: ResponseFormat  = {
-    //   type: "structural_tag",
-    //   structural_tag: {
-    //     type: "structural_tag",
-    //     format: {
-    //       type: "triggered_tags",
-    //       triggers: [
-    //         "<talkResponse>",
-    //         "<textBackground>",
-    //         "<status>",
-    //         "<options>",
-    //       ],
-    //       tags: [
-    //         {
-    //           begin: "<talkResponse>\n",
-    //           content: { type: "string" },
-    //           end: "\n</talkResponse>",
-    //         },
-    //         {
-    //           begin: "<textBackground>\n",
-    //           content: { type: "string" },
-    //           end: "\n</textBackground>",
-    //         },
-    //         {
-    //           begin: "<status>\n",
-    //           content: { type: "string" },
-    //           end: "\n</status>",
-    //         },
-    //         {
-    //           begin: "<options>\n",
-    //           content: { type: "array", items: { type: "string" } },
-    //           end: "\n</options>",
-    //         },
-    //       ],
-    //       at_least_one: true,
-    //       stop_after_first: true,
-    //     },
-    //   },
-    // };
-
+    const response_format = isFormatted ? { response_format:responseFormat } : {};
     const chunks = await generator.value.chat.completions.create({
       messages: sendMessages,
       temperature: 0.8,
       top_p: 0.9,
       stream: true,
-      response_format: responseFormat,
       max_tokens: 512,
+      ...response_format
     });
     let fullOutput = "";
     let isMetaArea = "start"; // 是否进入了元数据标签区
@@ -128,8 +91,13 @@ export const useMlcStore = defineStore("mlc", () => {
     for await (const chunk of chunks) {
       const delta = chunk.choices[0]?.delta?.content || "";
       if (!delta || delta.trim() === "") continue;
-
-      console.info("🛵delta", delta);
+      //不格式化直接输出
+      if(!isFormatted){
+        fullOutput += delta;
+        chunkCallBack(delta);
+        continue;
+      }
+      // console.info("🛵delta", delta);
       fullOutput += delta;
 
       if (isMetaArea === "end") {
@@ -185,6 +153,7 @@ export const useMlcStore = defineStore("mlc", () => {
         }
       }
     }
+    console.log('responseText',responseText)
     return responseText;
   }
 

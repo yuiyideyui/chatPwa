@@ -4,11 +4,11 @@ import { useMlcStore, useUserStore } from "@/store";
 const url = window.location.origin;
 const ModelList = {
   mobile: {
-    model: url + "/models/Llama-3.2-1B-Instruct-q4f16_1-MLC", // 权重路径
-    model_id: "Llama-3.2-1B-Instruct-q4f16_1-MLC",
+    model: url + "/models/Llama-3.2-1B-Instruct-q4f32_1-MLC", // 权重路径
+    model_id: "Llama-3.2-1B-Instruct-q4f32_1-MLC",
     // 这里的 WASM 库必须与模型版本严格对应
     model_lib:
-      url + "/wasm/Llama-3.2-1B-Instruct-q4f16_1-ctx4k_cs1k-webgpu.wasm",
+      url + "/wasm/Llama-3.2-1B-Instruct-q4f32_1-ctx4k_cs1k-webgpu.wasm",
     low_resource_required: true,
     overrides: {
       context_window_size: 2048,
