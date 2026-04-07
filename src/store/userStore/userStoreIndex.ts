@@ -18,6 +18,7 @@ export const useUserStore = defineStore("user", () => {
   const isMobile = ref(false);
   //初始化设备信息
   function initIsMobile() {
+    console.log('Initializing device information...');
     // isMobile.value = !!(
     //   navigator.userAgent.match(/Android/i) ||
     //   navigator.userAgent.match(/webOS/i) ||
@@ -31,16 +32,17 @@ export const useUserStore = defineStore("user", () => {
     const chatStore = useChatStore();
     const mlcStore = useMlcStore();
     const transformerStore = useTransformerStore();
-    chatStore.aiChat = async (
+    chatStore.setAIChat(async (
       messages: IChatMessage[],
       options: (data: string) => void,
+      isFormatted: boolean,
     ) => {
       if (userInfo.value.type === "transformers") {
-        return await transformerStore.aiChat(messages, options);
+        return await transformerStore.aiChat(messages, options,isFormatted);
       } else {
-        return await mlcStore.aiChat(messages, options);
+        return await mlcStore.aiChat(messages, options,isFormatted);
       }
-    };
+    })
   }
 
   return {

@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { readonly, ref, computed } from "vue";
 import type { IChatHistory, IChatMessage } from "./chatStoreIndex.type";
+import { GameType } from "./chatStoreIndex.type";
 import {
   openDB,
   addChatData,
@@ -49,19 +50,19 @@ export const useChatStore = defineStore("chat", () => {
     _chatHistoryEn.value = history;
   };
 
-  const formatMessageContent = (message: IChatMessage) => {
+  const formatMessageContent = (message: IChatMessage, lang: 'zh' | 'en') => {
     if (typeof message.content === "string") {
       return message.content;
     }
     const talk = message.content.talkResponse || "";
     const status =
       "status" in message.content && message.content.status
-        ? `状态：${message.content.status}`
+        ? `${lang === 'zh' ? '状态' : 'Status'}：${message.content.status}`
         : "";
     const options =
       "options" in message.content && message.content.options?.length
-        ? `选项：${message.content.options.join("、")}`
-      : "";
+        ? `${lang === 'zh' ? '选项' : 'Options'}：${message.content.options.join("、")}`
+        : "";
     return [talk, status, options].filter(Boolean).join(" | ");
   };
 
@@ -71,29 +72,173 @@ export const useChatStore = defineStore("chat", () => {
     );
   };
 
-  const saveMemoryForChat = (chat: IChatHistory | null) => {
-    if (!chat) return;
+  // 使用AI总结一组消息为长期记忆
+  const summarizeMessagesWithAI = async (
+    targetMessages: IChatMessage[],
+    chat: IChatHistory,
+  ): Promise<string> => {
+    // 检查AI是否已初始化
+    if (!aiChat.value) {
+      console.warn("[Memory Summary] AI engine not initialized, falling back to text concatenation");
+      return fallbackSummarize(targetMessages);
+    }
+
+    try {
+      // 根据游戏类型构造summarize prompt
+      const summaryPrompt = buildSummaryPrompt(targetMessages, chat.gameType);
+
+      // 构造消息数组供AI处理
+      const summaryMessages: IChatMessage[] = [
+        {
+          role: "user",
+          content: summaryPrompt,
+        } as IChatMessage,
+      ];
+
+      // 调用AI生成总结，设置较低温度确保一致性
+      let summary = "";
+      console.log('summaryMessages',summaryMessages)
+      const result = await aiChat.value(summaryMessages, (chunk: string) => {
+        console.log("[Memory Summary] Received chunk from AI:", chunk);
+        summary += chunk;
+      }, false);
+
+      const finalSummary = summary || result;
+      console.log("[Memory Summary] AI generated summary:", finalSummary);
+      // 验证总结有效性
+      if (finalSummary?.trim().length > 0) {
+        return finalSummary.trim();
+      }
+
+      console.warn("[Memory Summary] AI returned empty summary, falling back to text concatenation");
+      return fallbackSummarize(targetMessages);
+    } catch (error) {
+      console.warn("[Memory Summary] AI summarization failed:", error);
+      // 异常时降级到原有的拼接逻辑
+      return fallbackSummarize(targetMessages);
+    }
+  };
+
+  // 构造针对不同游戏类型的summary prompt
+  const buildSummaryPrompt = (
+    targetMessages: IChatMessage[],
+    gameType: GameType,
+  ): string => {
+    if (userStore.isMobile) {
+      const formattedMessages = targetMessages
+        .map(
+          (item) =>
+            `${item.role === "user" ? "[User]" : "[Character]"} ${formatMessageContent(item,'en')}`,
+        )
+        .join("\n");
+
+      const baseInstruction = `You are a professional memory summarization assistant. Please summarize the following conversation into a concise and clear memory record.\n\nConversation:\n${formattedMessages}\n\n`;
+
+      const typeSpecificInstruction = {
+        [GameType.TXT]: "Summarize only the key points of the dialogue between the user and the character, preserving essential information and context.",
+        [GameType.TXTGAME]: "Summarize the dialogue, the user's choices, and the changes in game state to help understand the story progression.",
+        [GameType.STORYGAME]: "Summarize the story background, interactions, character development, and state changes to form a complete event record.",
+      }[gameType];
+
+      return (
+        baseInstruction +
+        `\nSummary Requirements:\n1. Length: around 100–150 words\n2. ${typeSpecificInstruction}\n3. Only summarize existing content; do not infer or fabricate new information\n4. Format: [Time] User → Character → Choice/Result, specific content, for easy future recall\n\nPlease provide the summary directly without any additional explanation:`
+      );
+    } else {
+      const formattedMessages = targetMessages
+        .map(
+          (item) =>
+            `${item.role === "user" ? "【用户】" : "【角色】"}${formatMessageContent(item,'zh')}`,
+        )
+        .join("\n");
+
+      const baseInstruction = `你是一个专业的记忆总结助手。请总结以下对话内容为一段简洁清晰的回忆记录。\n\n对话内容：\n${formattedMessages}\n\n`;
+
+      const typeSpecificInstruction = {
+        [GameType.TXT]: "只需总结用户和角色的对话要点，保留关键信息和上下文。",
+        [GameType.TXTGAME]: "需要总结对话内容、用户的选择决定以及游戏状态变化，帮助理解故事进展。",
+        [GameType.STORYGAME]: "需要总结故事背景、互动过程、角色发展及状态变化，形成完整的事件记录。",
+      }[gameType];
+
+      return (
+        baseInstruction +
+        `\n总结要求：\n1. 字数限制：100-150字左右\n2. ${typeSpecificInstruction}\n3. 仅总结已有内容，不推理或虚构新内容\n4. 格式：【时间】用户→角色→选择/结果，具体内容，便于后续回忆\n\n请直接给出总结，不需要额外说明：`
+      );
+    }
+
+  };
+
+  // Fallback方案：使用原有的拼接逻辑
+  const fallbackSummarize = (targetMessages: IChatMessage[]): string => {
+    if(userStore.isMobile){
+      return targetMessages
+      .map((item) => `${item.role === "user" ? "user" : "role"}：${formatMessageContent(item,'zh')}`)
+      .join("\n");
+    }else{
+      return targetMessages
+      .map((item) => `${item.role === "user" ? "用户" : "角色"}：${formatMessageContent(item,'zh')}`)
+      .join("\n");
+    }
+  };
+
+  // 获取待保存的消息及相关数据（不进行保存）
+  const getMemoryData = (chat: IChatHistory | null) => {
+    if (!chat) return null;
     const availableMessages = finalizedMessages(chat);
     const expectedMemoryCount = Math.floor(
       availableMessages.length / MEMORY_GROUP_SIZE,
     );
     const memoryList = chat.memory[MEMORY_KEY] || [];
-    if (expectedMemoryCount <= memoryList.length) return;
+    if (expectedMemoryCount <= memoryList.length) return null;
     const targetMessages = availableMessages.slice(
       expectedMemoryCount * MEMORY_GROUP_SIZE - MEMORY_GROUP_SIZE,
       expectedMemoryCount * MEMORY_GROUP_SIZE,
     );
-    const eventContent = targetMessages
-      .map((item) => `${item.role === "user" ? "用户" : "角色"}：${formatMessageContent(item)}`)
-      .join("\n");
     const chatTime = targetMessages[targetMessages.length - 1]?.chatTime || "";
-    chat.memory[MEMORY_KEY] = [...memoryList, { chatTime, eventContent }];
+    return { targetMessages, chatTime, memoryList };
   };
 
-  const saveChatMemory = () => {
-    saveMemoryForChat(currentChat.value);
-    if (userStore.isMobile) {
-      saveMemoryForChat(currentChatEn.value);
+  const saveChatMemory = async () => {
+
+    const chatData = userStore.isMobile ? getMemoryData(currentChatEn.value) : getMemoryData(currentChat.value);
+    if (!chatData) return;
+
+    const { targetMessages, chatTime, memoryList } = chatData;
+
+    try {
+      let summary = "";
+      if (userStore.isMobile) {
+        summary = await summarizeMessagesWithAI(
+          targetMessages,
+          currentChatEn.value!,
+        );
+        currentChatEn.value!.memory[MEMORY_KEY] = [
+          ...memoryList,
+          { chatTime, eventContent: summary },
+        ];
+        console.log('currentChatEn',currentChatEn.value)
+        const transformerStore = useTransformerStore();
+        const chineseSummary = await transformerStore.translate(
+          summary,
+          TranslateType.EnToZh,
+        );
+        currentChat.value!.memory[MEMORY_KEY] = [
+          ...getMemoryData(currentChat.value)?.memoryList || [],
+          { chatTime, eventContent: chineseSummary },
+        ];
+      } else {
+        summary = await summarizeMessagesWithAI(
+          targetMessages,
+          currentChat.value!,
+        );
+        // Step 2: 保存到中文版本
+        currentChat.value!.memory[MEMORY_KEY] = [
+          ...memoryList,
+          { chatTime, eventContent: summary },
+        ];
+      }
+    } catch (error) {
+      console.error("[Memory Save] Unexpected error:", error);
     }
   };
 
@@ -166,16 +311,20 @@ export const useChatStore = defineStore("chat", () => {
     _currentChatId.value = null;
   };
 
-  const aiChat:
+  const aiChat = ref<((messages: IChatMessage[], callback: (data: string) => void, isFormatted: boolean) => Promise<string>)>();
+  const setAIChat = (fn:
     | ((
-        messages: IChatMessage[],
-        chunkCallBack: (data: string) => void,
-      ) => Promise<string>)
+      messages: IChatMessage[],
+      chunkCallBack: (data: string) => void,
+      isFormatted: boolean,
+    ) => Promise<string>)
     | ((
-        messages: IChatMessage[],
-        callback_function: (data: string) => void,
-      ) => Promise<string>) = undefined as any;
-
+      messages: IChatMessage[],
+      callback_function: (data: string) => void,
+      isFormatted: boolean,
+    ) => Promise<string>)) => {
+    aiChat.value = fn;
+  };
   return {
     chatHistory,
     currentChat,
@@ -190,6 +339,7 @@ export const useChatStore = defineStore("chat", () => {
     setChatHistoryEn,
     chatHistoryEn,
     aiChat,
+    setAIChat,
     saveChatMemory,
   };
 });

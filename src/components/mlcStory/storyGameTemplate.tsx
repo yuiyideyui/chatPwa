@@ -26,7 +26,7 @@ export const StoryGameTemplate = defineComponent({
       return text.replace(/\\n/g, "\n");
     };
     const selectOption = (option: string) => {
-      console.log("option", option);
+      // console.log("option", option);
       emit("selectOption", option);
     };
     return () => {
@@ -35,7 +35,7 @@ export const StoryGameTemplate = defineComponent({
       }
 
       const { content } = props.msg as IStoryGameAssistant;
-      console.log("content", content);
+      // console.log("content", content);
       return (
         <div class={s["story-game-container"]}>
           {/* 主体对话 */}
