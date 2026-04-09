@@ -42,7 +42,7 @@ export const useTransformerStore = defineStore("transformer", () => {
       callback_function,
     });
     const output = await generator.value!(sendMessages, {
-      max_new_tokens: 100, // 对话初期限制长度，防止它跑偏
+      max_new_tokens: 512, // 对话初期限制长度，防止它跑偏
       do_sample: true,
       temperature: 0.2, // 降低温度，增加确定性
       top_p: 0.8,

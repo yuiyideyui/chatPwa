@@ -124,7 +124,6 @@ import {
   // GameType,
   type IChatHistory,
 } from "@/store/chatStore/chatStoreIndex.type";
-// import { dialogMessage } from "@/components/dialogMessage";
 // import { StoryGameTemplate } from "@/components/mlcStory/storyGameTemplate";
 
 const chatStore = useChatStore();
