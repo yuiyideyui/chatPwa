@@ -198,7 +198,7 @@ import { parseMlcTalkResponse } from "./parseMlcTalkRespone.ts";
 import { StoryGameTemplate } from "../../../components/mlcStory/storyGameTemplate.tsx";
 import { TranslateType } from "@/store/transformerStore/transformerStoreIndex.ts";
 import { isLoadingChatModel } from "@/hook/gobalHook.ts";
-import { dialogMessage } from "@/components/dialogMessage.tsx";
+import { EbMessage } from '@yuiyideyui/everybody-ui';
 const userStore = useUserStore();
 const chatStore = useChatStore();
 const transformerStore = useTransformerStore();
@@ -257,7 +257,7 @@ const handleStartTextChat = () => {
 
 const sendMessage = async (userOptionsPrompt?: string) => {
   if (isLoadingChatModel.value || isThinking.value) {
-    dialogMessage({
+    EbMessage({
       jsx: (
         <div>
           <p>当前有任务正在进行，请稍后再试</p>
