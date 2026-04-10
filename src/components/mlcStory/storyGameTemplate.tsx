@@ -1,7 +1,8 @@
 import { GameType } from "@/store/chatStore/chatStoreIndex.type";
 import { defineComponent, type PropType } from "vue";
 import s from "./storyGameTemplate.module.css";
-
+import voiceIcon from '@/assets/icons8-voice-100.png';
+import { ttsInstance } from "@/components/TTS/TTScom";
 // 假设你的类型定义
 interface IStoryGameAssistant {
   role: "assistant";
@@ -37,42 +38,51 @@ export const StoryGameTemplate = defineComponent({
       const { content } = props.msg as IStoryGameAssistant;
       // console.log("content", content);
       return (
-        <div class={s["story-game-container"]}>
-          {/* 主体对话 */}
-          <div class={s["talk-response-bubble"]}>{formatContent(content.talkResponse)}</div>
-
-          {/* 交互选项 */}
-          {content.options?.length > 0 && (
-            <div class={s["options-grid"]}>
-              {content.options.map((option, index) => (
-                <button
-                  onClick={() => selectOption(option)}
-                  key={index}
-                  class={s["option-card"]}
-                >
-                  <span class={s["option-index"]}>{index + 1}</span>
-                  <span class={s["option-text"]}>{formatContent(option)}</span>
-                </button>
-              ))}
+        <>
+          <div class={s["story-game-container"]}>
+            {/* 主体对话 */}
+            <div class={s["talk-response-bubble"]}>{formatContent(content.talkResponse)}</div>
+            <div>
+              <img onClick={()=>startTTS(formatContent(content.talkResponse))} src={voiceIcon} alt="" style={{ width: '1rem', height: '1rem' }} />
             </div>
-          )}
 
-          {/* 剧情背景 */}
-          {content.textBackground && (
-            <div class={s["background-context"]}>
-              <div class={s.divider}>
-                <span class={s["divider-text"]}>SCENE</span>
+            {/* 交互选项 */}
+            {content.options?.length > 0 && (
+              <div class={s["options-grid"]}>
+                {content.options.map((option, index) => (
+                  <button
+                    onClick={() => selectOption(option)}
+                    key={index}
+                    class={s["option-card"]}
+                  >
+                    <span class={s["option-index"]}>{index + 1}</span>
+                    <span class={s["option-text"]}>{formatContent(option)}</span>
+                  </button>
+                ))}
               </div>
-              <p class={s["context-text"]}>{formatContent(content.textBackground)}</p>
-            </div>
-          )}
+            )}
 
-          {/* 状态 */}
-          {content.status && (
-            <div class={s["status-tag"]}>{formatContent(content.status)}</div>
-          )}
-        </div>
+            {/* 剧情背景 */}
+            {content.textBackground && (
+              <div class={s["background-context"]}>
+                <div class={s.divider}>
+                  <span class={s["divider-text"]}>SCENE</span>
+                </div>
+                <p class={s["context-text"]}>{formatContent(content.textBackground)}</p>
+              </div>
+            )}
+
+            {/* 状态 */}
+            {content.status && (
+              <div class={s["status-tag"]}>{formatContent(content.status)}</div>
+            )}
+          </div>
+        </>
       );
     };
   },
 });
+
+const startTTS = (text: string) => {
+  ttsInstance.value?.speak(text);
+}

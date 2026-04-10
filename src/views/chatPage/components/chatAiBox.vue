@@ -198,7 +198,7 @@ import { parseMlcTalkResponse } from "./parseMlcTalkRespone.ts";
 import { StoryGameTemplate } from "../../../components/mlcStory/storyGameTemplate.tsx";
 import { TranslateType } from "@/store/transformerStore/transformerStoreIndex.ts";
 import { isLoadingChatModel } from "@/hook/gobalHook.ts";
-import { EbMessage } from "@yuiyideyui/everybody-ui";
+import { EbMessage } from '@yuiyideyui/everybody-ui';
 const userStore = useUserStore();
 const chatStore = useChatStore();
 const transformerStore = useTransformerStore();
