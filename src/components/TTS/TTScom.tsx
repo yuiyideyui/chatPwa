@@ -1,7 +1,11 @@
 import { EbMessage, type EbMessageOptions } from '@yuiyideyui/everybody-ui';
 import { ref, type CSSProperties } from 'vue';
 //@ts-ignore
-import { installTTS } from "@/components/TTS/TTSinstall";
+import { installTTS,terminateTTS } from "@/components/TTS/TTSinstall";
+import { setStorage } from '@/utils/storage';
+import { useUserStore } from '@/store';
+
+
 const isShowTTSInstallMessage = ref(false);
 // 1. 定义自适应容器样式
 const containerStyle: CSSProperties = {
@@ -115,11 +119,23 @@ const startInstallTTS = async () => {
     ttsInstance.value = await installTTS(ttsDownloadingProgress);
     endText.value = '语音包安装成功！';
     setTimeout(() => {
+        const userStore = useUserStore();
+        setStorage('isTTSInstalled', true);
+        userStore.setTTSStorage(true);
         close();
     }, 1000);
 }
+const unInstallTTS = async () => {
+    const userStore = useUserStore();
+    setStorage('isTTSInstalled', false);
+    userStore.setTTSStorage(false);
+    ttsInstance.value = null;
+    terminateTTS();
+}
+
 export {
     showInstallTTS,
     startInstallTTS,
+    unInstallTTS,
     ttsInstance,
 }

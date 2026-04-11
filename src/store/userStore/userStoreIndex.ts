@@ -45,6 +45,13 @@ export const useUserStore = defineStore("user", () => {
     })
   }
 
+  /**是否允许安装TTS */
+  const isTTSInstalled = ref(localStorage.getItem('isTTSInstalled') === 'true' || false);
+  const setTTSStorage = (isInstalled: boolean) => {
+    isTTSInstalled.value = isInstalled;
+    localStorage.setItem('isTTSInstalled', isInstalled.toString());
+  }
+
   return {
     userInfo,
     setEngineType,
@@ -52,5 +59,7 @@ export const useUserStore = defineStore("user", () => {
     isMobile,
     /**初始化设备信息 */
     initIsMobile,
+    isTTSInstalled,
+    setTTSStorage
   };
 });

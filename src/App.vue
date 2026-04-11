@@ -8,12 +8,13 @@ import { initMlc } from "./utils/initMlc";
 import { selectEngine } from "./utils/utils";
 import { initTransformers, initTranslator } from "./utils/initTransformer";
 import { isLoadingChatModel} from "./hook/gobalHook";
-import { showInstallTTS } from "@/components/TTS/TTScom";
+import { showInstallTTS, startInstallTTS } from "@/components/TTS/TTScom";
 
 const chatStore = useChatStore();
 const userStore = useUserStore();
 const downloadProgress = ref(0);
 userStore.initIsMobile();
+
 const init = async() => {
   const indexDb = await openDB();
   if (indexDb) {
@@ -41,7 +42,12 @@ const init = async() => {
     console.info("引擎：", res);
     const unwatch = watch(() => isLoadingChatModel.value, (newVal) => {
       if(!newVal) {
-        showInstallTTS()
+        console.log('userStore.isTTSInstalled',userStore.isTTSInstalled)
+        if(userStore.isTTSInstalled) {
+          startInstallTTS()
+        }else{
+          showInstallTTS()
+        }
         unwatch()
       }
     });
