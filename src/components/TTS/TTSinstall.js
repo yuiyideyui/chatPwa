@@ -3,14 +3,14 @@ let audioCtx = null;
 let ttsWorker = null;
 
 let Module = {
-  setStatus: function (status, loaded, total,ttsDownloadingProgress) {
+  setStatus: function (status, loaded, total, ttsDownloadingProgress) {
     console.info(`TTS Status: ${status} (${loaded}/${total})`);
-    if(loaded && total){
+    if (loaded && total) {
       ttsDownloadingProgress.value = Math.round((loaded / total) * 100);
     }
   }
 }
-const initTTSWorker = (resolve,ttsDownloadingProgress) => {
+const initTTSWorker = (resolve, ttsDownloadingProgress) => {
   const worker = new Worker(new URL("@/worker/sherpa-onnx-tts.worker.js", import.meta.url));
   ttsWorker = worker;
 
@@ -22,7 +22,7 @@ const initTTSWorker = (resolve,ttsDownloadingProgress) => {
   worker.onmessage = (e) => {
     const { type, status, numSpeakers, samples, sampleRate, loaded, total } = e.data;
     if (type === "sherpa-onnx-tts-progress") {
-      Module.setStatus(status, loaded, total,ttsDownloadingProgress);
+      Module.setStatus(status, loaded, total, ttsDownloadingProgress);
     }
 
     if (type === "sherpa-onnx-tts-ready") {
@@ -44,9 +44,9 @@ const initTTSWorker = (resolve,ttsDownloadingProgress) => {
  * 初始化 TTS
  */
 export const installTTS = async (ttsDownloadingProgress) => {
-  if(!ttsWorker) {
+  if (!ttsWorker) {
     await new Promise((resolve) => {
-      initTTSWorker(resolve,ttsDownloadingProgress);
+      initTTSWorker(resolve, ttsDownloadingProgress);
     })
   }
   return {
@@ -57,7 +57,7 @@ export const installTTS = async (ttsDownloadingProgress) => {
      */
     speak: (text, speakerId = 0, speed = 1.0) => {
       if (!ttsWorker) return console.error("Worker not initialized");
-      
+
       // 发送消息给 Worker 开始推理
       ttsWorker.postMessage({
         type: "generate",
@@ -68,7 +68,52 @@ export const installTTS = async (ttsDownloadingProgress) => {
     }
   };
 }
+export const terminateTTS = async () => {
+  console.log("Terminating TTS Worker...");
+  if (!ttsWorker) return;
 
+  await new Promise((resolve) => {
+    let timer = null;
+
+    // 清理函数：统一处理资源释放
+    const cleanUp = () => {
+      if (timer) clearTimeout(timer);
+      if (ttsWorker) {
+        ttsWorker.terminate();
+        ttsWorker = null;
+      }
+      audioCtx = null;
+      resolve();
+    };
+
+    const onWorkerMessage = (e) => {
+      const { type, error } = e.data;
+      if (type === "sherpa-onnx-tts-clear-success" || type === "sherpa-onnx-tts-clear-failed") {
+        ttsWorker.removeEventListener("message", onWorkerMessage);
+        if (type === "sherpa-onnx-tts-clear-failed") {
+          console.error("TTS cache clear failed:", error);
+        } else {
+          console.log("TTS cache cleared successfully.");
+        }
+        cleanUp(); // 成功/失败后都要正常关闭
+      }
+    };
+
+    ttsWorker.addEventListener("message", onWorkerMessage);
+    ttsWorker.postMessage({ type: "deletePackage" });
+
+    // 设置超时保护
+    timer = setTimeout(() => {
+      if (ttsWorker) {
+        ttsWorker.removeEventListener("message", onWorkerMessage);
+        console.warn("TTS cache clear timed out, terminating worker anyway.");
+      }
+      cleanUp();
+    }, 2000);
+  });
+  
+  console.log("TTS Worker termination flow completed.");
+};
 /**
  * 播放音频采样数据
  */

@@ -108,6 +108,7 @@
             <p class="text-sm font-bold truncate">yui</p>
             <p class="text-[10px] text-slate-500 font-medium">noName用户</p>
           </div>
+          <div @click="handleShowSetting">⚙</div>
           <span
             class="i-solar-settings-bold-duotone text-slate-400 text-lg"
           ></span>
@@ -153,6 +154,11 @@ const startNewChat = () => {
   emit("new-chat");
   emit("close");
   router.push("/");
+};
+
+const handleShowSetting = () => {
+  router.push("/setting");
+  emit("close");
 };
 </script>
 

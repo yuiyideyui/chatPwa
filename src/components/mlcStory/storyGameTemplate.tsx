@@ -16,6 +16,7 @@ interface IStoryGameAssistant {
 
 export const StoryGameTemplate = defineComponent({
   name: "StoryGameTemplate",
+  emits: ["selectOption"],
   props: {
     msg: { type: Object as PropType<any>, required: true },
     gameType: { type: String as PropType<GameType>, required: true },

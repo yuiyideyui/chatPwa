@@ -1,10 +1,8 @@
 import { createWebHashHistory, createRouter } from "vue-router";
-import selectAiPage from "@/views/selectAiPage/selectAiPageIndex.vue";
-import chatPage from "@/views/chatPage/chatPageIndex.vue";
-
 const routes = [
-  { path: "/", component: selectAiPage },
-  { path: "/chatPage", component: chatPage },
+  { path: "/", component: ()=> import("@/views/selectAiPage/selectAiPageIndex.vue") },
+  { path: "/chatPage", component: ()=> import("@/views/chatPage/chatPageIndex.vue") },
+  { path: "/setting", component: () => import("@/views/settingPage/settingPageIndex.vue") },
 ];
 
 export const router = createRouter({
