@@ -4,7 +4,7 @@ import { onMounted, ref, watch } from "vue";
 import { DB_NAME_ENUM, getAllChatHistory, openDB } from "./utils/chatIndexedDb";
 import { useChatStore, useUserStore } from "./store";
 import { router } from "./router";
-import { initMlc } from "./utils/initMlc";
+import { initMlc } from "./utils/initMlc.tsx";
 import { selectEngine } from "./utils/utils";
 import { initTransformers, initTranslator } from "./utils/initTransformer";
 import { isLoadingChatModel} from "./hook/gobalHook";

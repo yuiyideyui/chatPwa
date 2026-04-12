@@ -81,7 +81,7 @@ public/models/
 public/wasm/
 ```
 
-并与 `src/utils/initMlc.ts` 配置保持一致。
+并与 `src/utils/initMlc.tsx` 配置保持一致。
 
 ### 启动开发
 
@@ -105,7 +105,7 @@ npm run preview
 
 ## ⚙️ 配置说明
 
-- `src/utils/initMlc.ts`：WebLLM 初始化、模型配置、缓存策略
+- `src/utils/initMlc.tsx`：WebLLM 初始化、模型配置、缓存策略
 - `src/utils/initTransformer.ts`：Transformers 配置
 
 ## 📄 License
