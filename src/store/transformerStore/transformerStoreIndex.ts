@@ -59,12 +59,12 @@ export const useTransformerStore = defineStore("transformer", () => {
   };
 
   const translatorEnToZh = shallowRef<TranslationPipeline | null>(null);
-  const setTranslatorEnToZh = (data: TranslationPipeline) => {
+  const setTranslatorEnToZh = (data: TranslationPipeline | null) => {
     translatorEnToZh.value = data;
   };
 
   const translatorZhToEn = shallowRef<TranslationPipeline | null>(null);
-  const setTranslatorZhToEn = (data: TranslationPipeline) => {
+  const setTranslatorZhToEn = (data: TranslationPipeline | null) => {
     translatorZhToEn.value = data;
   };
 
@@ -93,6 +93,8 @@ export const useTransformerStore = defineStore("transformer", () => {
     aiChat,
     setTranslatorEnToZh,
     setTranslatorZhToEn,
+    translatorZhToEn,
+    translatorEnToZh,
     translate,
   };
 });

@@ -50,4 +50,17 @@ export const IDBCache = {
     await db.put("models", blob, cleanUrl);
     console.log("💾 已存入 IndexedDB:", cleanUrl);
   },
+
+  async delete(name: string) {
+    const db = await dbPromise;
+    db.getAllKeys('models').then(keys => {
+      keys.forEach(key => {
+        if ((key as string).includes(name)) {
+          db.delete('models', key).then(() => {
+            console.log("🗑️ 已删除缓存:", key);
+          });
+        }
+      });
+    });
+  }
 };

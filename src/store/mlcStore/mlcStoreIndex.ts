@@ -17,7 +17,7 @@ const metaSchema = Type.Object({
 });
 export const useMlcStore = defineStore("mlc", () => {
   const generator = shallowRef<WebWorkerMLCEngine | null>(null);
-  const setGenerator = (data: WebWorkerMLCEngine) => {
+  const setGenerator = (data: WebWorkerMLCEngine | null) => {
     generator.value = data;
   };
 

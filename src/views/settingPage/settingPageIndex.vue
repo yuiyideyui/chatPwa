@@ -95,11 +95,14 @@
 
 <script setup lang="tsx">
 import { startInstallTTS, unInstallTTS } from '@/components/TTS/TTScom';
-import { useUserStore } from '@/store';
+import { useTransformerStore, useUserStore } from '@/store';
+import { uninstallMlc } from '@/utils/initMlc';
+import { installTranslator, uninstallTranslatorDB } from '@/utils/initTransformer';
 import { EbMessage } from '@yuiyideyui/everybody-ui';
 import { computed, onMounted, reactive, ref, type Ref } from 'vue';
 
 const userStore = useUserStore();
+const transformerStore = useTransformerStore();
 // 定义组
 const openGroups = ref(['ai_models']); // 默认打开 AI 模型组
 
@@ -110,9 +113,10 @@ interface ResourceItem {
     icon: string;
     status: 'installed' | 'not_installed';
     progress: number;
-    isInstalling:'none' | 'installing' | 'unInstalling';
+    isInstalling: 'none' | 'installing' | 'unInstalling';
     installCallback: (item: ResourceItem) => void;
     uninstallCallback: (item: ResourceItem) => void;
+    params?: any
 }
 type ResourceGroup = {
     title: string;
@@ -126,10 +130,10 @@ const resourceGroups: Ref<Record<string, ResourceGroup>> = computed(() => {
             icon: 'AI',
             items: [
                 {
-                    id: 101, name: 'Llama-3.2-1B-Instruct-q4f32_1-MLC', size: '700 MB', icon: 'AI',isInstalling: 'none', status: 'installed', progress: 100, installCallback: (_) => {
-                        userStore.isTTSInstalled = true;
-                    }, uninstallCallback: (_) => {
-                        userStore.isTTSInstalled = false;
+                    id: 101, name: 'Llama-3.2-1B-Instruct-q4f32_1-MLC', size: '700 MB', icon: 'AI', isInstalling: 'none', status: 'installed', progress: 100, installCallback: (item) => {
+
+                    }, uninstallCallback: (item) => {
+                        uninstallMlc(item.name)
                     }
                 },
             ]
@@ -139,14 +143,16 @@ const resourceGroups: Ref<Record<string, ResourceGroup>> = computed(() => {
             icon: 'Voice',
             items: [
                 {
-                    id: 201, name: 'sherpaTTS', size: '120 MB', icon: 'TTS',isInstalling: 'none', status: userStore.isTTSInstalled ? 'installed' : 'not_installed', progress: 100, installCallback: async(item) => {
+                    id: 201, name: 'sherpaTTS', size: '120 MB', icon: 'TTS', isInstalling: 'none', status: userStore.isTTSInstalled ? 'installed' : 'not_installed', progress: 100, installCallback: async (item) => {
                         item.isInstalling = 'installing';
                         await startInstallTTS()
                         userStore.isTTSInstalled = true;
                         item.isInstalling = 'none';
-                    }, uninstallCallback: (_) => {
-                        unInstallTTS()
+                    }, uninstallCallback: async (item) => {
+                        item.isInstalling = 'unInstalling';
+                        await unInstallTTS()
                         userStore.isTTSInstalled = false;
+                        item.isInstalling = 'none';
                     }
                 },
             ]
@@ -156,17 +162,27 @@ const resourceGroups: Ref<Record<string, ResourceGroup>> = computed(() => {
             icon: 'TNS',
             items: [
                 {
-                    id: 301, name: 'Google NMT', size: '45 MB', icon: 'language', status: 'not_installed',isInstalling: 'none', progress: 0, installCallback: (_) => {
-                        userStore.isTTSInstalled = true;
-                    }, uninstallCallback: (_) => {
-                        userStore.isTTSInstalled = false;
+                    id: 301, params: {
+
+                    }, name: 'opus-mt-en-zh', size: '117 MB', icon: 'TNS', status: transformerStore.translatorEnToZh ? 'installed' : 'not_installed', isInstalling: 'none', progress: 0, installCallback: async (item) => {
+                        item.isInstalling = 'installing';
+                        await installTranslator('opus-mt-en-zh')
+                        item.isInstalling = 'none';
+                    }, uninstallCallback: async (item) => {
+                        item.isInstalling = 'unInstalling';
+                        await uninstallTranslatorDB('opus-mt-en-zh')
+                        item.isInstalling = 'none';
                     }
                 },
                 {
-                    id: 302, name: 'LibreTranslate (Local)', size: '1.2 GB', icon: 'subtitles',isInstalling: 'none', status: 'not_installed', progress: 32, installCallback: (_) => {
-                        userStore.isTTSInstalled = true;
-                    }, uninstallCallback: (_) => {
-                        userStore.isTTSInstalled = false;
+                    id: 302, name: 'opus-mt-zh-en', size: '117 MB', icon: 'TNS', isInstalling: 'none', status: transformerStore.translatorZhToEn ? 'installed' : 'not_installed', progress: 32, installCallback: async (item) => {
+                        item.isInstalling = 'installing';
+                        await installTranslator('opus-mt-zh-en')
+                        item.isInstalling = 'none';
+                    }, uninstallCallback: async (item) => {
+                        item.isInstalling = 'unInstalling';
+                        await uninstallTranslatorDB('opus-mt-zh-en')
+                        item.isInstalling = 'none';
                     }
                 },
             ]
@@ -183,16 +199,16 @@ const toggleGroup = (key: string) => {
 };
 
 const handleAction = (groupKey: string, item: ResourceItem) => {
-    if(item.isInstalling !== 'none'){
+    if (item.isInstalling !== 'none') {
         EbMessage({
-            jsx:()=>{
+            jsx: () => {
                 return <div class="flex items-center gap-2">
                     <span class="spinner"></span>
                     <span>{item.isInstalling === 'installing' ? '安装中...' : '卸载中...'}</span>
                 </div>
             },
-            position:'center',
-            timeClose:1000,
+            position: 'center',
+            timeClose: 1000,
         })
         return;
     }

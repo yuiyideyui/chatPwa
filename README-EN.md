@@ -61,7 +61,7 @@ Ensure you have [Node.js](https://nodejs.org/) installed along with an up-to-dat
    pnpm install
    ```
 
-2. Please ensure the required model/wasm files are downloaded/served into the `public/` directory (e.g., `public/models/Llama-3.2-1B...` and `public/wasm/...`) based on your model configuration in `src/utils/initMlc.ts`.
+2. Please ensure the required model/wasm files are downloaded/served into the `public/` directory (e.g., `public/models/Llama-3.2-1B...` and `public/wasm/...`) based on your model configuration in `src/utils/initMlc.tsx`.
 
 ### Running Locally
 
@@ -89,7 +89,7 @@ npm run preview
 
 The AI initialization configuration can be configured in:
 
-- `src/utils/initMlc.ts` for WebLLM configurations, model endpoints, memory limits, and IndexedDB caching logic.
+- `src/utils/initMlc.tsx` for WebLLM configurations, model endpoints, memory limits, and IndexedDB caching logic.
 - `src/utils/initTransformer.ts` for secondary transformer/feature configurations.
 
 ## 📄 License

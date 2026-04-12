@@ -6,7 +6,7 @@ import type { Ref } from "vue";
 const url = window.location.origin;
 env.allowRemoteModels = true;
 env.allowLocalModels = true;
-env.backends.onnx.wasm!.proxy = true; // 开启多线程代理
+env.backends.onnx.wasm!.proxy = false; // 开启多线程代理
 env.backends.onnx.logLevel = "verbose";
 env.backends.onnx.wasm!.wasmPaths = url + "/wasm/";
 env.localModelPath = url + "/models/";
@@ -45,14 +45,52 @@ export const initTranslator = async () => {
   console.info("初始化翻译模块");
   const transformerStore = useTransformerStore();
   const [translatorEnToZh, translatorZhToEn] = await Promise.all([
-    pipeline("translation", "opus-mt-en-zh",{
-      dtype:'q8'
+    pipeline("translation", "opus-mt-en-zh", {
+      dtype: 'q8'
     }),
-    pipeline("translation", "opus-mt-zh-en",{
-      dtype:'q8'
+    pipeline("translation", "opus-mt-zh-en", {
+      dtype: 'q8'
     }),
   ]);
   console.info("初始化翻译模块完成");
   transformerStore.setTranslatorEnToZh(translatorEnToZh);
   transformerStore.setTranslatorZhToEn(translatorZhToEn);
 };
+const translatorMap = {
+  'opus-mt-en-zh': {
+    installFn: async () => {
+      const transformerStore = useTransformerStore();
+      const translatorEnToZh = await pipeline("translation", "opus-mt-en-zh", {
+        dtype: 'q8'
+      })
+      transformerStore.setTranslatorEnToZh(translatorEnToZh);
+    },
+    uninstallFn: async (name: string) => {
+      const transformerStore = useTransformerStore();
+      await IDBCache.delete(name);
+      transformerStore.translatorEnToZh?.dispose();
+      transformerStore.setTranslatorEnToZh(null);
+    }
+  },
+  'opus-mt-zh-en': {
+    installFn: async () => {
+      const transformerStore = useTransformerStore();
+      const translatorZhToEn = await pipeline("translation", "opus-mt-zh-en", {
+        dtype: 'q8'
+      })
+      transformerStore.setTranslatorZhToEn(translatorZhToEn);
+    },
+    uninstallFn: async (name: string) => {
+      const transformerStore = useTransformerStore();
+      await IDBCache.delete(name);
+      transformerStore.translatorZhToEn?.dispose();
+      transformerStore.setTranslatorZhToEn(null);
+    }
+  }
+} as const
+export const installTranslator = async (name: keyof typeof translatorMap) => {
+  await translatorMap[name].installFn();
+}
+export const uninstallTranslatorDB = async (name: keyof typeof translatorMap) => {
+  await translatorMap[name].uninstallFn(name);
+}
