@@ -1,9 +1,8 @@
 import { EbMessage, type EbMessageOptions } from '@yuiyideyui/everybody-ui';
 import { ref, type CSSProperties } from 'vue';
 //@ts-ignore
-import { installTTS,terminateTTS } from "@/components/TTS/TTSinstall";
-import { setStorage } from '@/utils/storage';
-import { useUserStore } from '@/store';
+import { installTTS,terminateTTS,stopTTS } from "@/components/TTS/TTSinstall";
+import { installIngCom } from '../installCom';
 
 
 const isShowTTSInstallMessage = ref(false);
@@ -98,44 +97,26 @@ const ttsInstance = ref<any>(null);
 const ttsDownloadingProgress = ref(0);
 const startInstallTTS = async () => {
     const endText = ref('')
-    const { close } = EbMessage({
-        jsx: () => (
-            <div class="top-progress-container">
-                <div class="loading-toast">
-                    <span class="spinner"></span>
-                    {
-                        !endText.value
-                            ? (ttsDownloadingProgress.value !== 100
-                                ? `下载中... ${ttsDownloadingProgress.value}%`
-                                : '开始安装')
-                            : endText.value
-                    }
-                </div>
-            </div>
-        ),
-        position: 'top',
-        baseStyle: false,
-    });
+    const close = installIngCom(ttsDownloadingProgress)
     ttsInstance.value = await installTTS(ttsDownloadingProgress);
     endText.value = '语音包安装成功！';
     setTimeout(() => {
-        const userStore = useUserStore();
-        setStorage('isTTSInstalled', true);
-        userStore.setTTSStorage(true);
         close();
     }, 1000);
 }
 const unInstallTTS = async () => {
-    const userStore = useUserStore();
-    setStorage('isTTSInstalled', false);
-    userStore.setTTSStorage(false);
     ttsInstance.value = null;
     terminateTTS();
+}
+const unActiveTTS = async () => {
+    ttsInstance.value = null;
+    stopTTS();
 }
 
 export {
     showInstallTTS,
     startInstallTTS,
     unInstallTTS,
+    unActiveTTS,
     ttsInstance,
 }

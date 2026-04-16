@@ -8,10 +8,12 @@ let Module = {
     if (loaded && total) {
       ttsDownloadingProgress.value = Math.round((loaded / total) * 100);
     }
-  }
-}
+  },
+};
 const initTTSWorker = (resolve, ttsDownloadingProgress) => {
-  const worker = new Worker(new URL("@/worker/sherpa-onnx-tts.worker.js", import.meta.url));
+  const worker = new Worker(
+    new URL("@/worker/sherpa-onnx-tts.worker.js", import.meta.url),
+  );
   ttsWorker = worker;
 
   let ttsInstanceInfo = {
@@ -20,7 +22,8 @@ const initTTSWorker = (resolve, ttsDownloadingProgress) => {
   };
 
   worker.onmessage = (e) => {
-    const { type, status, numSpeakers, samples, sampleRate, loaded, total } = e.data;
+    const { type, status, numSpeakers, samples, sampleRate, loaded, total } =
+      e.data;
     if (type === "sherpa-onnx-tts-progress") {
       Module.setStatus(status, loaded, total, ttsDownloadingProgress);
     }
@@ -39,7 +42,7 @@ const initTTSWorker = (resolve, ttsDownloadingProgress) => {
       createAudioTag({ samples, sampleRate });
     }
   };
-}
+};
 /**
  * 初始化 TTS
  */
@@ -47,7 +50,7 @@ export const installTTS = async (ttsDownloadingProgress) => {
   if (!ttsWorker) {
     await new Promise((resolve) => {
       initTTSWorker(resolve, ttsDownloadingProgress);
-    })
+    });
   }
   return {
     /**
@@ -63,11 +66,18 @@ export const installTTS = async (ttsDownloadingProgress) => {
         type: "generate",
         text: text,
         speakerId: speakerId,
-        speed: speed
+        speed: speed,
       });
-    }
+    },
   };
-}
+};
+export const stopTTS = async () => {
+  console.log("Terminating TTS Worker...");
+  if (!ttsWorker) return;
+  ttsWorker.terminate();
+  ttsWorker = null;
+  audioCtx = null;
+};
 export const terminateTTS = async () => {
   console.log("Terminating TTS Worker...");
   if (!ttsWorker) return;
@@ -88,7 +98,10 @@ export const terminateTTS = async () => {
 
     const onWorkerMessage = (e) => {
       const { type, error } = e.data;
-      if (type === "sherpa-onnx-tts-clear-success" || type === "sherpa-onnx-tts-clear-failed") {
+      if (
+        type === "sherpa-onnx-tts-clear-success" ||
+        type === "sherpa-onnx-tts-clear-failed"
+      ) {
         ttsWorker.removeEventListener("message", onWorkerMessage);
         if (type === "sherpa-onnx-tts-clear-failed") {
           console.error("TTS cache clear failed:", error);
@@ -111,7 +124,7 @@ export const terminateTTS = async () => {
       cleanUp();
     }, 2000);
   });
-  
+
   console.log("TTS Worker termination flow completed.");
 };
 /**
@@ -119,11 +132,13 @@ export const terminateTTS = async () => {
  */
 function playAudioBuffer(samples, sampleRate) {
   if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)({
+      sampleRate,
+    });
   }
 
   // 如果音频上下文处于挂起状态（浏览器安全策略），尝试恢复
-  if (audioCtx.state === 'suspended') {
+  if (audioCtx.state === "suspended") {
     audioCtx.resume();
   }
 
@@ -152,10 +167,8 @@ function toWav(floatSamples, sampleRate) {
   let samples = new Int16Array(floatSamples.length);
   for (let i = 0; i < samples.length; ++i) {
     let s = floatSamples[i];
-    if (s >= 1)
-      s = 1;
-    else if (s <= -1)
-      s = -1;
+    if (s >= 1) s = 1;
+    else if (s <= -1) s = -1;
 
     samples[i] = s * 32767;
   }
@@ -165,22 +178,22 @@ function toWav(floatSamples, sampleRate) {
 
   // http://soundfile.sapp.org/doc/WaveFormat/
   //                   F F I R
-  view.setUint32(0, 0x46464952, true);               // chunkID
-  view.setUint32(4, 36 + samples.length * 2, true);  // chunkSize
+  view.setUint32(0, 0x46464952, true); // chunkID
+  view.setUint32(4, 36 + samples.length * 2, true); // chunkSize
   //                   E V A W
-  view.setUint32(8, 0x45564157, true);  // format
+  view.setUint32(8, 0x45564157, true); // format
   //
   //                      t m f
-  view.setUint32(12, 0x20746d66, true);          // subchunk1ID
-  view.setUint32(16, 16, true);                  // subchunk1Size, 16 for PCM
-  view.setUint32(20, 1, true);                   // audioFormat, 1 for PCM
-  view.setUint16(22, 1, true);                   // numChannels: 1 channel
-  view.setUint32(24, sampleRate, true);          // sampleRate
-  view.setUint32(28, sampleRate * 2, true);      // byteRate
-  view.setUint16(32, 2, true);                   // blockAlign
-  view.setUint16(34, 16, true);                  // bitsPerSample
-  view.setUint32(36, 0x61746164, true);          // Subchunk2ID
-  view.setUint32(40, samples.length * 2, true);  // subchunk2Size
+  view.setUint32(12, 0x20746d66, true); // subchunk1ID
+  view.setUint32(16, 16, true); // subchunk1Size, 16 for PCM
+  view.setUint32(20, 1, true); // audioFormat, 1 for PCM
+  view.setUint16(22, 1, true); // numChannels: 1 channel
+  view.setUint32(24, sampleRate, true); // sampleRate
+  view.setUint32(28, sampleRate * 2, true); // byteRate
+  view.setUint16(32, 2, true); // blockAlign
+  view.setUint16(34, 16, true); // bitsPerSample
+  view.setUint32(36, 0x61746164, true); // Subchunk2ID
+  view.setUint32(40, samples.length * 2, true); // subchunk2Size
 
   let offset = 44;
   for (let i = 0; i < samples.length; ++i) {
@@ -188,5 +201,5 @@ function toWav(floatSamples, sampleRate) {
     offset += 2;
   }
 
-  return new Blob([view], { type: 'audio/wav' });
+  return new Blob([view], { type: "audio/wav" });
 }
