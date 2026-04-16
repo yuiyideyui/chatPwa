@@ -55,6 +55,7 @@ export default defineConfig({
       "Cross-Origin-Embedder-Policy": "require-corp",
     },
     host: true,
+    port: 5555,
   },
   preview: {
     host: true,
