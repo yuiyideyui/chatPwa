@@ -9,7 +9,7 @@ const dbPromise = openDB("Transformers-IDB-Cache", 1, {
   },
 });
 
-export const IDBCache = {
+export const IDBTransformerCache = {
   // 辅助函数：归一化 URL，去掉查询参数
   normalizeUrl(request: Request | string): string {
     const url = typeof request === "string" ? request : request.url;
@@ -53,14 +53,14 @@ export const IDBCache = {
 
   async delete(name: string) {
     const db = await dbPromise;
-    db.getAllKeys('models').then(keys => {
-      keys.forEach(key => {
+    db.getAllKeys("models").then((keys) => {
+      keys.forEach((key) => {
         if ((key as string).includes(name)) {
-          db.delete('models', key).then(() => {
+          db.delete("models", key).then(() => {
             console.log("🗑️ 已删除缓存:", key);
           });
         }
       });
     });
-  }
+  },
 };
