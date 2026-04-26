@@ -197,8 +197,7 @@ import { useUserStore } from "@/store";
 import { parseMlcTalkResponse } from "./parseMlcTalkRespone.ts";
 import { StoryGameTemplate } from "../../../components/mlcStory/storyGameTemplate.tsx";
 import { TranslateType } from "@/store/transformerStore/transformerStoreIndex.ts";
-import { isLoadingChatModel } from "@/hook/gobalHook.ts";
-import { EbMessage } from '@yuiyideyui/everybody-ui';
+import { EbMessage } from "@yuiyideyui/everybody-ui";
 const userStore = useUserStore();
 const chatStore = useChatStore();
 const transformerStore = useTransformerStore();
@@ -256,7 +255,7 @@ const handleStartTextChat = () => {
 };
 
 const sendMessage = async (userOptionsPrompt?: string) => {
-  if (isLoadingChatModel.value || isThinking.value) {
+  if (isThinking.value) {
     EbMessage({
       jsx: (
         <div>
@@ -340,14 +339,17 @@ const sendMessage = async (userOptionsPrompt?: string) => {
       );
     const summarizedCount = contextMemory.length * 4;
     const trimmedStartIndex =
-      summarizedCount > 0 ? Math.min(summarizedCount, normalizedMessages.length) : 0;
-    let contextMessages: IChatMessage[] = normalizedMessages.slice(trimmedStartIndex);
+      summarizedCount > 0
+        ? Math.min(summarizedCount, normalizedMessages.length)
+        : 0;
+    let contextMessages: IChatMessage[] =
+      normalizedMessages.slice(trimmedStartIndex);
     const memorySystemText = contextMemory.length
       ? `# Long-term Memory:
 ${contextMemory
   .map((item, index) => `${index + 1}. ${item.eventContent}`)
   .join("\n")}
-        ${userStore.isMobile ? "Please regard the above memory as a fact that has occurred, and avoid conflicting with the subsequent plot.":'请将以上记忆视为已发生事实，避免和后续剧情冲突。'}}`
+        ${userStore.isMobile ? "Please regard the above memory as a fact that has occurred, and avoid conflicting with the subsequent plot." : "请将以上记忆视为已发生事实，避免和后续剧情冲突。"}}`
       : "";
 
     contextMessages.unshift({
